@@ -16,6 +16,7 @@
 static int AddGhost (Hdr *, float **, int, int);
 static void BuildTempNames (char *, char *, char *, char *);
 static int CheckIDT (Hdr *, StisInfo6 *, int *);
+static int CreateMergeTable (char *, int, TblDesc *);
 static void FillArray (float **, float **, float **, int, int,
                        double, double, double, double, double *, int);
 static int GetMatchingOrder (int, ScatterFunctions *);
@@ -25,6 +26,7 @@ static double Linear (double, double, double, double, double);
 static double MedianRowsPerAngstrom (RowContents **, int);
 static int RedoX1DFile (char *, RowContents **, int);
 static double Select (unsigned long, unsigned long, double *);
+static int WriteMergeRow (TblDesc *, Spliced *, int *);
 
 /* Not used */
 /*
@@ -192,6 +194,12 @@ int bks_order;		i: backgr. smoothing polynomial order
         int prtimestamp;
 	double dummy;
 
+	FILE *file_descriptor;
+	TblDesc mergetable;
+	char mergefilename[STIS_FNAME];
+	int merge_row_number;
+	FloatHdrData *fhd;
+
 	float **Alloc2DArrayF (int, int);
 	RowContents **AllocX1DTable (int);
 	int EchScatRead (Hdr *, double, double, ScatterFunctions *, int);
@@ -205,6 +213,7 @@ int bks_order;		i: backgr. smoothing polynomial order
 	int GetKeyInfo6 (StisInfo6 *, Hdr *);
 	int GetX1DTable (TblDesc *, RowContents **);
 	int History6 (StisInfo6 *, Hdr *, int);
+	void InitTblDesc (TblDesc *);
 	int OpenX1DTable (char *, int, TblDesc *);
 	void Float2Cmplx (float **, int, int, CmplxArray *);
 	int RebinData (SingleGroup *, SingleGroup *, RowContents **,
@@ -703,7 +712,24 @@ int bks_order;		i: backgr. smoothing polynomial order
 	    for (i = 0; i < merge.npts; i++)
 	        merge.fmerge[i] = (merge.fmerge[i] > (-20. * exptime)) ?
                                    merge.fmerge[i] : (-20. * exptime);
+	    /*
+	    InitTblDesc(&mergetable);
+	    mergetable.array_size = merge.npts;
+	    strcpy(mergefilename, "merge.fits");
+	    if ((status = CreateMergeTable(mergefilename, extver, &mergetable)))
+	      return (status);
 
+	    merge_row_number = 1;
+	    if (WriteMergeRow (&mergetable, &merge, &merge_row_number))
+	      return (status);
+	    printf("writing merge to text file");
+	    file_descriptor = fopen("test.txt", "w");
+	    for (i = 0; i < merge.npts; i++) {
+	      fprintf(file_descriptor, "%.8g\t%.8g\n", merge.wmerge[i], merge.fmerge[i]);
+	    }
+
+	    fclose(file_descriptor);
+	    */
 	    /* Now multiply back by blaze and divide by scale so the
                net data extracted from the input image gets restored to
                its original state.
@@ -1187,6 +1213,17 @@ int bks_order;		i: backgr. smoothing polynomial order
 	        /* If final iteration, clean up memory and leave main loop. */
 
 	        if (iter == NITER) {
+                    initSingleGroup (&wout);
+	            allocSingleGroup (&wout, win.sci.data.nx, win.sci.data.ny);
+	            for (j = 0; j < wout.sci.data.ny; j++) {
+	                for (i = 0; i < wout.sci.data.nx; i++)
+	                    Pix (wout.sci.data, i, j) = im_mod[j][i];
+	            }
+	            copyHdr (&(wout.sci.hdr), &(win.sci.hdr));
+                    if (putSingleGroup (temp_ima, iter, &wout, 0))
+                        return (OPEN_FAILED);
+	            freeSingleGroup (&wout);
+
 	            free (merge.fmerge);
 	            free (merge.wmerge);
 	            Free2DArrayF (o_mod1, win.sci.data.ny);
@@ -1209,7 +1246,12 @@ int bks_order;		i: backgr. smoothing polynomial order
 	            printf ("Write current model image to disk.\n");
 	            fflush (stdout);
 	        }
+                /*
 	        remove (temp_ima);
+		*/
+		initFloatHdrData (&fhd);
+		allocFloatHdrData (&fhd, win.sci.data.nx, win.sci.data.ny);
+		
 	        initSingleGroup (&wout);
 	        allocSingleGroup (&wout, win.sci.data.nx, win.sci.data.ny);
 	        for (j = 0; j < wout.sci.data.ny; j++) {
@@ -1217,12 +1259,13 @@ int bks_order;		i: backgr. smoothing polynomial order
 	                Pix (wout.sci.data, i, j) = im_mod[j][i];
 	        }
 	        copyHdr (&(wout.sci.hdr), &(win.sci.hdr));
-
-                tim = openOutputImage (temp_ima, "", 0, phdr, 0, 0, FITSBYTE);
-                if (hstio_err())
-                    return (OPEN_FAILED);
-                closeImage (tim);
-                if (putSingleGroup (temp_ima, 1, &wout, 0))
+		if (iter == 1) {
+		    tim = openOutputImage (temp_ima, "", 0, phdr, 0, 0, FITSBYTE);
+                    if (hstio_err())
+                        return (OPEN_FAILED);
+                    closeImage (tim);
+		}
+                if (putSingleGroup (temp_ima, iter, &wout, 0))
                      return (OPEN_FAILED);
 	        freeSingleGroup (&wout);
 
@@ -1247,8 +1290,9 @@ int bks_order;		i: backgr. smoothing polynomial order
                              lfilter, 1, pipeline, &dummy, &dummy, 1.0,
                              blazeshift, bks_mode, bks_order, xoffset)))
 	            return (status);
+		/*
 	        remove (temp_ima);
-
+		*/
 	        if (verbose) {
 	            printf ("End extraction of 1-D data.\n");
 	            fflush (stdout);
@@ -1894,7 +1938,7 @@ static int AddGhost (Hdr *phdr, float **im, int nx, int ny) {
 	        xx = kx[0][0] + j * kx[0][1] + i * kx[1][0] + j * i * kx[1][1];
 	        yy = ky[0][0] + j * ky[0][1] + i * ky[1][0] + j * i * ky[1][1];
 	        ii = (int)NINT(xx);
-	        jj = (int)NINT(xx);
+	        jj = (int)NINT(yy);
 	        ii = (ii < 0) ? 0 : ii;
 	        jj = (jj < 0) ? 0 : jj;
 	        ii = (ii >= nx) ? (nx - 1) : ii;
@@ -2122,8 +2166,35 @@ static void BuildTempNames (char *basename, char *out1, char *out2, char *out3) 
 	strcat (out3, file_name);
 }
 
+/*
+int CreateMergeTable(char *filename, int extnum, TblDesc *table) {
 
+	if ((table->tp = c_tbtopn (filename, IRAF_NEW_FILE, 0)) == 0)
+	  return (OPEN_FAILED);
 
+        c_tbcdef1 (table->tp, &(table->npts),    NELEM, "","",
+                   IRAF_SHORT, 1);
+        c_tbcdef1 (table->tp, &(table->wave),    WAVELENGTH, "Angstroms","",
+                   IRAF_DOUBLE, table->array_size);
+        c_tbcdef1 (table->tp, &(table->flux),   "FLUX", "Counts/s","",
+                   IRAF_REAL, table->array_size);
+	c_tbtcre (table->tp);
+
+	return (STIS_OK);
+
+}
+
+int WriteMergeRow(TblDesc *table, Spliced merge, int *row_number) {
+
+    (*row_number)++;
+
+    c_tbapts (table->tp, table->npts, *row_number, &(merge->npts), 1, 1);
+    c_tbaptr (table->tp, table->wave, *row_number, &(merge->wmerge), 1, 1);
+    c_tbaptr (table->tp, table->wave, *row_number, &(merge->fmerge), 1, 1);
+
+    return (0);
+
+*/
 
 /***************************************************************************/
 
