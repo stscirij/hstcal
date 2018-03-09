@@ -77,7 +77,7 @@ int crrej_do (IRAFPointer tpin, char *outfile, clpar *par, int newpar[],
         int	o_cal2_in (clpar *, int [], int, float,   int *, float []);
 	int 	crrej_sky (char *, IODescPtr [], IODescPtr [], int,   float []);
 	void 	cr_history (SingleGroup *, clpar *);
-	int 	crrej_init (IODescPtr [], clpar *, int, int, int,
+	int 	crrej_init (IODescPtr [], IODescPtr [], clpar *, int, int, int,
 				float [], float [], float [], float [],
 				FloatTwoDArray *, FloatTwoDArray *,   float *);
 	int 	crrej_loop (IODescPtr [], IODescPtr [], char **,
@@ -194,7 +194,7 @@ int crrej_do (IRAFPointer tpin, char *outfile, clpar *par, int newpar[],
 
 	/* compute the initial pixel values to be used to compared against all
 	   images. */
-	if (crrej_init (ipsci, par, nimgs, dim_x, dim_y,
+	if (crrej_init (ipsci, ipdq, par, nimgs, dim_x, dim_y,
 			noise, gain, efac, skyval,
 			&sg.sci.data, &sg.err.data, work))
 	    return (2);

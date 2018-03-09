@@ -7,6 +7,8 @@
 # include	"calstis2.h"
 # include	"cs2.h"
 
+#define     OK  (short)0
+
 /*  crrej_init -- get the initial average pixel values
 
   Description:
@@ -23,7 +25,7 @@
 				i.e. subtract the sky before applying scalense.
 */
 
-int crrej_init (IODescPtr ipsci[], clpar *par, int nimgs, int dim_x, int dim_y,
+int crrej_init (IODescPtr ipsci[], IODescPtr ipdq[], clpar *par, int nimgs, int dim_x, int dim_y,
 		float noise[], float gain[], float efac[], float skyval[], 
 		FloatTwoDArray *ave, FloatTwoDArray *avevar,   float *work)
 {
@@ -33,6 +35,9 @@ int crrej_init (IODescPtr ipsci[], clpar *par, int nimgs, int dim_x, int dim_y,
 	int		i, j, n;
 	int		dum;
 	int		*npts;
+	short           *dqbuf;
+	short           dqpat;
+	Hdr             dqhdr;
 
 	void		piksrt (float [], int);
 
@@ -42,11 +47,12 @@ int crrej_init (IODescPtr ipsci[], clpar *par, int nimgs, int dim_x, int dim_y,
 
 	npts = calloc (dim_x, sizeof(int));
 	buf = calloc (dim_x, sizeof(float));
-	if (npts == NULL || buf == NULL) {
+	dqbuf = calloc (dim_x, sizeof(short));
+	if (npts == NULL || buf == NULL || dqbuf == NULL) {
 	    printf ("ERROR    out of memory in crrej_init\n");
 	    return (2);
 	}
-
+	dqpat = par->badinpdq;
 	/* use the stack median to construct the initial average */
 	if (strncmp(par->initial, "median", 3) == 0) {
 	    for (j = 0; j < dim_y; j++) {
@@ -54,11 +60,18 @@ int crrej_init (IODescPtr ipsci[], clpar *par, int nimgs, int dim_x, int dim_y,
 		    npts[i] = 0;
 
 		for (n = 0; n < nimgs; n++) {
+		    initHdr(&dqhdr);
+		    getHeader(ipdq[n], &dqhdr);
 		    getFloatLine (ipsci[n], j, buf);
+		    getShortLine (ipdq[n], j, dqbuf);
+		    freeHdr(&dqhdr);
+
 		    for (i = 0; i < dim_x; i++) {
+		      if ((dqbuf[i] & dqpat) == OK) {
 			PIX(work,npts[i],i,nimgs) = (buf[i] - skyval[n]) / 
 							efac[n];
 			npts[i] += 1;
+		      }
 		    }
 		}
 		for (i = 0; i < dim_x; i++) {
@@ -111,6 +124,7 @@ int crrej_init (IODescPtr ipsci[], clpar *par, int nimgs, int dim_x, int dim_y,
 	/* free the memory */
 	free (npts);
 	free (buf);
+	free (dqbuf);
 
 	return (0);
 }
