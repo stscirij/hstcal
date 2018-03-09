@@ -52,7 +52,7 @@ int crrej_init (IODescPtr ipsci[], IODescPtr ipdq[], clpar *par, int nimgs, int 
 	    printf ("ERROR    out of memory in crrej_init\n");
 	    return (2);
 	}
-	dqpat = par->badinpdq;
+	dqpat = par->badbits;
 	/* use the stack median to construct the initial average */
 	if (strncmp(par->initial, "median", 3) == 0) {
 	    for (j = 0; j < dim_y; j++) {
