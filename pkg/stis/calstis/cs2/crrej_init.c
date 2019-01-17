@@ -35,6 +35,7 @@ int crrej_init (IODescPtr ipsci[], IODescPtr ipdq[], clpar *par, int nimgs, int 
 	int		i, j, n;
 	int		dum;
 	int		*npts;
+	int             badpixels;
 	short           *dqbuf;
 	short           dqpat;
 	Hdr             dqhdr;
@@ -43,6 +44,7 @@ int crrej_init (IODescPtr ipsci[], IODescPtr ipdq[], clpar *par, int nimgs, int 
 
 /* -------------------------------- begin ---------------------------------- */
 
+	printf ("This is the upgraded version of crrej_init\n");
 	scale = par->scalenoise / 100.;
 
 	npts = calloc (dim_x, sizeof(int));
@@ -53,6 +55,9 @@ int crrej_init (IODescPtr ipsci[], IODescPtr ipdq[], clpar *par, int nimgs, int 
 	    return (2);
 	}
 	dqpat = par->badbits;
+	printf ("dqpat = %d\n", dqpat);
+	badpixels = 0;
+        printf("initial guess constructed using %s\n", par->initial);
 	/* use the stack median to construct the initial average */
 	if (strncmp(par->initial, "median", 3) == 0) {
 	    for (j = 0; j < dim_y; j++) {
@@ -71,10 +76,12 @@ int crrej_init (IODescPtr ipsci[], IODescPtr ipdq[], clpar *par, int nimgs, int 
 			PIX(work,npts[i],i,nimgs) = (buf[i] - skyval[n]) / 
 							efac[n];
 			npts[i] += 1;
-		      }
+		      } else {
+                        badpixels = badpixels + 1;
+                      }
 		    }
 		}
-		for (i = 0; i < dim_x; i++) {
+ 		for (i = 0; i < dim_x; i++) {
 		    dum = npts[i];
 		    if (dum == 0)
 			PPix(ave,i,j) = 0.0F;
@@ -88,7 +95,7 @@ int crrej_init (IODescPtr ipsci[], IODescPtr ipdq[], clpar *par, int nimgs, int 
 		    }
 		}
 	    }
-
+	    printf ("%d bad pixels\n", badpixels);
 	/* use the minimum to construct the initial average */
 	} else {
 	    if (strncmp(par->initial, "minimum", 3) != 0) {
@@ -96,28 +103,33 @@ int crrej_init (IODescPtr ipsci[], IODescPtr ipdq[], clpar *par, int nimgs, int 
 			par->initial);
 		strcpy (par->initial, "minimum");
 	    }
-	    for (j = 0; j < dim_y; j++) {
-		for (n = 0; n < nimgs; n++) {
-		    exp2 = SQ(efac[n]);
-		    rog2 = SQ(noise[n]);
-		    getFloatLine (ipsci[n], j, buf);
-		    for (i = 0; i < dim_x; i++) {
-			raw = buf[i];
-			raw0 = (raw > 0.)? raw : 0.;
-			signal0 = ((raw - skyval[n]) > 0.) ?
-				   (raw - skyval[n]) : 0.;
-			val = (raw - skyval[n]) / efac[n];
-			if (n == 0) {
-			    PPix(ave,i,j) = val;
-			    PPix(avevar,i,j) = (rog2 + raw0/gain[n] + 
-						SQ(scale*signal0)) / exp2;
-			} else if (val < PPix(ave,i,j)) {
-			    PPix(ave,i,j) = val;
-			    PPix(avevar,i,j) = (rog2 + raw0/gain[n] + 
-						SQ(scale*signal0)) / exp2;
-			}
+            for (n = 0; n < nimgs; n++) {
+	      initHdr(&dqhdr);
+	      getHeader(ipdq[n], &dqhdr);
+	      for (j = 0; j < dim_y; j++) {
+	        exp2 = SQ(efac[n]);
+		rog2 = SQ(noise[n]);
+		getFloatLine (ipsci[n], j, buf);
+                getShortLine (ipdq[n], j, dqbuf);
+		for (i = 0; i < dim_x; i++) {
+		  raw = buf[i];
+		  raw0 = (raw > 0.)? raw : 0.;
+		  signal0 = ((raw - skyval[n]) > 0.) ?
+		      (raw - skyval[n]) : 0.;
+		  val = (raw - skyval[n]) / efac[n];
+                  if ((n == 0) || (val < PPix(ave,i,j))) {
+                    if ((dqbuf[i] & dqpat) == OK && (efac[n] > 0.)) {
+		      PPix(ave,i,j) = val;
+		      PPix(avevar,i,j) = (rog2 + raw0/gain[n] + 
+						  SQ(scale*signal0)) / exp2;
+		    } else {
+		      PPix(ave,i,j) = 0.0;
+		      PPix(avevar,i,j) = 0.0;
 		    }
+		  }
 		}
+	      }
+	      freeHdr(&dqhdr);
 	    }
 	}
 
