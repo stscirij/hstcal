@@ -44,7 +44,6 @@ int crrej_init (IODescPtr ipsci[], IODescPtr ipdq[], clpar *par, int nimgs, int 
 
 /* -------------------------------- begin ---------------------------------- */
 
-	printf ("This is the upgraded version of crrej_init\n");
 	scale = par->scalenoise / 100.;
 
 	npts = calloc (dim_x, sizeof(int));
@@ -55,9 +54,7 @@ int crrej_init (IODescPtr ipsci[], IODescPtr ipdq[], clpar *par, int nimgs, int 
 	    return (2);
 	}
 	dqpat = par->badbits;
-	printf ("dqpat = %d\n", dqpat);
 	badpixels = 0;
-        printf("initial guess constructed using %s\n", par->initial);
 	/* use the stack median to construct the initial average */
 	if (strncmp(par->initial, "median", 3) == 0) {
 	    for (j = 0; j < dim_y; j++) {
@@ -95,7 +92,6 @@ int crrej_init (IODescPtr ipsci[], IODescPtr ipdq[], clpar *par, int nimgs, int 
 		    }
 		}
 	    }
-	    printf ("%d bad pixels\n", badpixels);
 	/* use the minimum to construct the initial average */
 	} else {
 	    if (strncmp(par->initial, "minimum", 3) != 0) {

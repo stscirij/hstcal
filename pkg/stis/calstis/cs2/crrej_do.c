@@ -199,8 +199,6 @@ int crrej_do (IRAFPointer tpin, char *outfile, clpar *par, int newpar[],
 			&sg.sci.data, &sg.err.data, work))
 	    return (2);
 
-	/* temporarily write out the initial pixel values and errors */
-	putSingleGroup ("initial.fits",  1, &sg, 0);
 	/* do the iterative cosmic ray rejection calculations */
 	if (crrej_loop (ipsci, ipdq, imgname, grp, nimgs, par, niter,
 			dim_x, dim_y,
