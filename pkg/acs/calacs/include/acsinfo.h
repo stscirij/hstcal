@@ -12,6 +12,9 @@
         PhotInfo to only contain a single set of arrays for wave and thru.
     2001-12-04 WJH: Added expstart and expend.
     2017-02-21 PLL: Added SINKCORR varibles.
+    2020-01-10 MDD: Added overhead_postflashed and overhead_unflashed variables.
+    2020-04-29 MDD: Added atod_saturate variable.
+    2020-05-11 MDD: Added satmap variable. This renders "saturate" variable obsolete.
 */
 
 #include "hstio.h"
@@ -48,6 +51,7 @@ typedef struct {
     int ncombine;                   /* number previously summed together */
     int nimsets;                    /* number of "groups" in file */
     int members;                /* # of members associated with this exposure */
+    int nextend;                    // # of extensions in file = ``NEXTEND``
     char mtype[SZ_STRKWVAL+1];      /* Role of exposure in association */
 
     /* Exposure time keywords */
@@ -81,7 +85,8 @@ typedef struct {
     double blev[NAMPS];  /* bias level value fit for each amp from overscan*/
     int ampx;           /* first column affected by amps on 2/4amp readout*/
     int ampy;           /* first row affected by amps on 2/4amp readout*/
-    float saturate;     /* CCD saturation level */
+    int atod_saturate;  /* A-to-D saturation level */
+    float saturate;     /* CCD saturation level OBSOLETE */
     int trimx[2];       /* Width of overscan to trim off ends of each line */
     int trimy[2];       /* Amount of overscan to trim off ends of each col */
     int vx[2];
@@ -90,6 +95,9 @@ typedef struct {
     int biassectb[2];   /* Columns to use for trailing overscan region */
     float flashdur; 	/* duration of post-flash (in seconds) */
     char flashstatus[ACS_CBUF+1];		/* status of post-flash exposure */
+    float overhead_postflashed;  /* Overhead for post-flashed observations (s) */
+    float overhead_unflashed;    /* Overhead for unflashed observations (s) */
+    double darktime;    /* total time for dark current to accrue (s) */
 
     /* calibration flags (switches) for ACSCCD */
     int dqicorr;        /* data quality initialization */
@@ -124,6 +132,7 @@ typedef struct {
     RefTab atod;        /* analog to digital correction table */
     RefTab spot;        /* Spotflat offset table */
     RefImage sink;      /* sink pixel image */
+    RefImage satmap;    /* full-well saturation image */
 
     /* calibration images and tables for ACSCTE */
     RefTab pcte;        /* Pixel CTE parameters table */

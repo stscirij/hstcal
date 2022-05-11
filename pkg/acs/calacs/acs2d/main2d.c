@@ -5,7 +5,7 @@
 # include <time.h>
 # include <string.h>
 
-int status = 0;			/* zero is OK */
+extern int status;			/* zero is OK */
 
 # include <c_iraf.h>		/* for c_irafinit */
 #include "hstcal_memory.h"
@@ -72,7 +72,7 @@ int main (int argc, char **argv) {
     char *isuffix[] = {"_raw", "_blv_tmp", "_blc_tmp", "_crj_tmp", "_crc_tmp"};
     char *osuffix[] = {"_flt", "_flt",     "_flc",     "_crj",     "_crc"};
 
-    int nsuffix = 3;
+    int nsuffix = 5;
 
     /* A structure to pass the calibration switches to acs2d */
     CalSwitch acs2d_sw;
@@ -96,6 +96,7 @@ int main (int argc, char **argv) {
     int GetSwitch (Hdr *, char *, int *);
     int Get2dSw (CalSwitch *, Hdr *);
 
+    status = 0;
     c_irafinit (argc, argv);
 
     /* Allocate space for file names. */

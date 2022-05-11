@@ -6,6 +6,8 @@
 
 # include <time.h>
 # include <string.h>
+# include <stdbool.h>
+# include <assert.h>
 
 #include "hstcal.h"
 # include "hstio.h"
@@ -15,8 +17,9 @@
 # include "hstcalerr.h"
 # include "acscorr.h"		/* calibration switch names */
 # include "trlbuf.h"
+# include "getacskeys.h"
 
-void InitCTETrl (char *, char *);
+void InitCTETrl (char * input, char * output, const char * isuffix, const char * osuffix);
 
 
 /* Do CTE loss correction.
@@ -27,7 +30,7 @@ void InitCTETrl (char *, char *);
  */
 int ACScte (char *input, char *output, CalSwitch *cte_sw,
             RefFileInfo *refnames, int printtime, int verbose,
-            const unsigned nThreads, const unsigned cteAlgorithmGen, const char * pcteTabNameFromCmd) {
+            const unsigned nThreads, const unsigned cteAlgorithmGen, const char * pcteTabNameFromCmd, const bool forwardModelOnly) {
 
     extern int status;
 
@@ -35,10 +38,9 @@ int ACScte (char *input, char *output, CalSwitch *cte_sw,
 
     Hdr phdr;		/* primary header for input image */
 
-    int DoCTE (ACSInfo *);
+    int DoCTE (ACSInfo *, const bool forwardModelOnly);
     int FileExists (char *);
     int GetCTEFlags (ACSInfo *, Hdr *);
-    int GetACSKeys (ACSInfo *, Hdr *);
     void TimeStamp (char *, char *);
     void PrBegin (char *);
     void PrEnd (char *);
@@ -59,7 +61,15 @@ int ACScte (char *input, char *output, CalSwitch *cte_sw,
        and output file names, then initialize the trailer file buffer
        with those names.
     */
-    InitCTETrl (input, output);
+
+    char * isuffix = "_blv_tmp";
+    char osuffix[CHAR_FNAME_LENGTH+1];
+    if (forwardModelOnly)
+        strcpy(osuffix, "_ctefmod");
+    else
+        strcpy(osuffix, "_blc_tmp");
+
+    InitCTETrl (input, output, isuffix, osuffix);
     /* If we had a problem initializing the trailer files, quit... */
     if (status != ACS_OK)
         return (status);
@@ -104,10 +114,25 @@ int ACScte (char *input, char *output, CalSwitch *cte_sw,
         return (status);
 
     /* Get keyword values from primary header. */
-    if (GetACSKeys (&acs, &phdr)) {
+    if (getAndCheckACSKeys (&acs, &phdr)) {
         freeHdr (&phdr);
         return (status);
     }
+
+    if (forwardModelOnly)
+    {
+        // Only model full IMSETS defined as ("SCI", "ERR", "DQ") extensions
+        if ((status = findTotalNumberOfImsets(acs.input, "SCI", &(acs.nimsets))))
+            return status;
+
+        if (acs.nimsets < 1)
+        {
+            sprintf (MsgText, "N IMSETS found = %d; must be at least %d.", acs.nimsets, 1);
+            trlerror (MsgText);
+            return INVALID_VALUE;
+        }
+    }
+
     /* If we have MAMA data, do not even proceed here... */
     if (acs.detector == MAMA_DETECTOR) {
         /* Return ACS_OK, since processing can proceed, just with a
@@ -140,7 +165,7 @@ int ACScte (char *input, char *output, CalSwitch *cte_sw,
         TimeStamp("Begin processing", acs.rootname);
     }
 
-    if (DoCTE(&acs)) {
+    if (DoCTE(&acs, forwardModelOnly)) {
         return (status);
     }
 
@@ -158,15 +183,15 @@ int ACScte (char *input, char *output, CalSwitch *cte_sw,
 }
 
 
-void InitCTETrl (char *input, char *output) {
+void InitCTETrl (char *input, char *output, const char * isuffix, const char * osuffix) {
 
     extern int status;
 
     char trl_in[CHAR_LINE_LENGTH+1]; 	/* trailer filename for input */
     char trl_out[CHAR_LINE_LENGTH+1]; 	/* output trailer filename */
 
-    char isuffix[] = "_blv_tmp";
-    char osuffix[] = "_blc_tmp";
+    assert(isuffix);
+    assert(osuffix);
     char trlsuffix[] = "";
 
     int MkName (char *, char *, char *, char *, char *, int);

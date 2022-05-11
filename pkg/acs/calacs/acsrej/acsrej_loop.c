@@ -1,15 +1,16 @@
-# include   <stdio.h>
+# include   <stdio.h> 
 # include   <string.h>
 # include   <stdlib.h>
 # include   <math.h>
 
-#include "hstcal.h"
+# include   "hstcal.h"
 # include   "hstio.h"
 
 # include   "acs.h"
 # include   "acsrej.h"
 # include   "rej.h"
 # include   "hstcalerr.h"
+# include   "str_util.h"
 
 /* local mask values */
 # define    OK          (short)0
@@ -137,6 +138,13 @@ Code Outline:
   12-Jan-2016   P.L. Lim    Calculations now entirely in electrons.
   14-Jan-2016   P.L. Lim    Replace threshold formula with ERR. Cleaned up
                             threshold calculation function.
+  26-Feb-2019   M.D. DeLaPena Check the IMAGETYP and adjust the dqpat and maskdq
+                            for BIAS and DARK images.  Bad pixels (BPIXTAB flag of 4) 
+                            are ignored during the combination process for the 
+                            SCI and ERR arrays (i.e. treat bad pixels as normal pixels).
+  18-Jan-2022   M.D. DeLaPena Modified the computation of the output ERR image so
+                            the output in the CRJ file is propagated from the input
+                            ERR images, using only non-CR pixels (Git Issue#371).
 */
 int acsrej_loop (IODescPtr ipsci[], IODescPtr iperr[], IODescPtr ipdq[],
                  char imgname[][CHAR_FNAME_LENGTH], int grp [], int nimgs,
@@ -144,7 +152,7 @@ int acsrej_loop (IODescPtr ipsci[], IODescPtr iperr[], IODescPtr ipdq[],
                  float sigma[], multiamp noise, multiamp gain,
                  float efac[], float skyval[], FloatTwoDArray *ave,
                  FloatTwoDArray *avevar, float *efacsum,
-                 ShortTwoDArray *dq, int *nrej, char *shadfile) {
+                 ShortTwoDArray *dq, int *nrej, char *shadfile, char *imagetyp) {
     /*
       Parameters:
 
@@ -177,7 +185,7 @@ int acsrej_loop (IODescPtr ipsci[], IODescPtr iperr[], IODescPtr ipdq[],
                   comparison during CR rejection.
                   As output, it is the average image also in e/s,
                   recalculated from good pixels only.
-      avevar   o: ERR array in e/s, recalculated from good pixels only.
+      avevar   o: ERR array in e, recalculated from good pixels only.
       efacsum  o: Array of total exposure times, in seconds, for each of
                   the pixels. This is calculated from the number of good
                   pixels left for that location after CR rejection.
@@ -186,6 +194,7 @@ int acsrej_loop (IODescPtr ipsci[], IODescPtr iperr[], IODescPtr ipdq[],
                   CR flags in the last iteration. This is used to
                   calculate REJ_RATE keyword value in CRJ/CRC output image.
       shadfile i: SHADFILE filename. This is used to apply SHADCORR.
+      imagetyp i: Image type or exposure identifier (e.g., bias, dark).
     */
 
     extern int status;
@@ -203,6 +212,7 @@ int acsrej_loop (IODescPtr ipsci[], IODescPtr iperr[], IODescPtr ipdq[],
     short   maskdq;
 
     float   efacn, skyvaln;
+    float   exptot;				/* Total exposure time of all images from TEXPTIME and EXPTIME */
     int     readnoise_only;
 
     ShortTwoDArray dq2;         /* local array for storing output blv DQ vals */
@@ -212,10 +222,13 @@ int acsrej_loop (IODescPtr ipsci[], IODescPtr iperr[], IODescPtr ipdq[],
     float   ***thresh, ***spthresh;
     short   ***mask;
 
+    float   ***scroll_buferr;
+
     float   *sum;
     float   *sumvar;
     float   *buf, *buferr;
     short   *bufdq;
+    float   *err2;
 
     Byte    ***crmask;          /* Compressed CR HIT mask for all images */
 
@@ -251,17 +264,28 @@ int acsrej_loop (IODescPtr ipsci[], IODescPtr iperr[], IODescPtr ipdq[],
     /********************************** Begin Code ****************************/
     /* Initialization */
     crflag = par->crval;
-    dqpat = par->badinpdq;
+    
     scale = par->scalense / 100.;
     nocr = ~crflag;
     nospill = ~SPILL;
+
     numpix = dim_x * dim_y;
     readnoise_only = par->readnoise_only;
 
-    /* Set up mask for detecting CR-affected pixels */
-    maskdq = OK | EXCLUDE;
-    maskdq = maskdq | HIT;
+    /* If BIAS or DARK frames, do not use the EXCLUDE value pixels for maskdq  
+       and dqpat per Git Issue #373.  
+
+       Set up maskdq for detecting CR-affected pixels
+    */
+    dqpat = par->badinpdq;
+    upperCase(imagetyp);
+    maskdq = OK | HIT;
     maskdq = maskdq | SPILL;
+    if ( (strncmp(imagetyp, "BIAS", 4) != 0) && (strncmp(imagetyp, "DARK", 4) != 0) ) {
+        maskdq = maskdq | EXCLUDE;
+    } else {
+        dqpat = dqpat & (~EXCLUDE);
+    }
 
     /* Define the buffer size for scrolling up the image. */
     width = (int) ceil(par->radius);  /* radius (pix) to propagate CR */
@@ -293,12 +317,18 @@ int acsrej_loop (IODescPtr ipsci[], IODescPtr iperr[], IODescPtr ipdq[],
         trlerror ("Couldn't allocate memory for scratch array in ACSREJ_LOOP.");
         return (status = OUT_OF_MEMORY);
     }
-
+    scroll_buferr= (float ***) calloc (nimgs, sizeof(float **));
+    if (scroll_buferr== NULL) {
+        trlerror ("Couldn't allocate memory for scratch array in ACSREJ_LOOP.");
+        return (status = OUT_OF_MEMORY);
+    }
     for (k = 0; k < nimgs; k++) {
         mask[k] = allocShortBuff (buffheight, dim_x);
         pic[k] = allocFloatBuff(buffheight, dim_x);
         thresh[k] = allocFloatBuff (buffheight, dim_x);
         spthresh[k] = allocFloatBuff (buffheight, dim_x);
+
+        scroll_buferr[k] = allocFloatBuff (buffheight, dim_x);
     }
 
     zerofbuf = calloc (dim_x, sizeof(float));
@@ -310,6 +340,8 @@ int acsrej_loop (IODescPtr ipsci[], IODescPtr iperr[], IODescPtr ipdq[],
     buf = calloc (dim_x, sizeof(float));
     buferr = calloc (dim_x, sizeof(float));
     bufdq = calloc (dim_x, sizeof(short));
+
+    err2 = calloc(dim_x, sizeof(float));
 
     /*
        If we want to perform SHADCORR here, ...
@@ -396,8 +428,10 @@ int acsrej_loop (IODescPtr ipsci[], IODescPtr iperr[], IODescPtr ipdq[],
         rog2[k] = SQ(noise.val[k]);  /* e^2, copied to noise2 below */
     }
 
+    exptot = 0.0;
     for (n = 0; n < nimgs; n++) {
         exp2[n] = SQ(efac[n]);  /* s^2 */
+        exptot += efac[n];
     }
 
     /* Set up gain and values used for each image */
@@ -431,6 +465,8 @@ int acsrej_loop (IODescPtr ipsci[], IODescPtr iperr[], IODescPtr ipdq[],
                     memcpy (pic[k][j], zerofbuf, dim_x * sizeof(float));
                     memcpy (thresh[k][j], zerofbuf, dim_x * sizeof(float));
                     memcpy (spthresh[k][j], zerofbuf, dim_x * sizeof(float));
+
+                    memcpy (scroll_buferr[k][j], zerofbuf, dim_x * sizeof(float));
                 }
             }
         } /* End initialization section */
@@ -441,6 +477,7 @@ int acsrej_loop (IODescPtr ipsci[], IODescPtr iperr[], IODescPtr ipdq[],
             /* Zero out this buffer for the next line */
             memcpy (sum, zerofbuf, dim_x * sizeof(float));
             memcpy (sumvar, zerofbuf, dim_x * sizeof(float));
+            memcpy (err2, zerofbuf, dim_x * sizeof(float));
 
             /* Set up the gain and noise values used for this line in
                ALL images */
@@ -511,6 +548,9 @@ int acsrej_loop (IODescPtr ipsci[], IODescPtr iperr[], IODescPtr ipdq[],
                     scrollFloatBuff (buferr, line, dim_y, buffheight, dim_x,
                                      spthresh[k], zerofbuf);
 
+                    scrollFloatBuff (buferr, line, dim_y, buffheight, dim_x,
+                                     scroll_buferr[k], zerofbuf);
+
                     /* Recalculate thresholds properly. Only the last inserted
                        row of the scrolling buffer needs to be recalculated.
 
@@ -537,6 +577,8 @@ int acsrej_loop (IODescPtr ipsci[], IODescPtr iperr[], IODescPtr ipdq[],
                        Leave thresholds as zeroes. */
                     InitFloatSect (pic[k], buf, ipsci[k], line, width, dim_x);
                     InitShortSect (mask[k], bufdq, ipdq[k], line, width, dim_x);
+
+                    InitFloatSect (scroll_buferr[k], buferr, iperr[k], line, width, dim_x);
 
                     /* No data when (ii < width), just zeroes */
                     for (ii = width; ii < buffheight; ii++) {
@@ -720,6 +762,10 @@ int acsrej_loop (IODescPtr ipsci[], IODescPtr iperr[], IODescPtr ipdq[],
                             /* add the sky-subtracted but UN-scaled counts */
                             sum[i] += pic[n][width][i] * efacn;  /* e */
                             PIX(efacsum, i, line, dim_x) += efacn;  /* s */
+
+                            /* add the error contributions from each image for a pixel which is not rejected 
+                             * err2 is in e^2 */
+                            err2[i] += SQ(scroll_buferr[n][width][i]);
                         }
                     }
 
@@ -752,6 +798,7 @@ int acsrej_loop (IODescPtr ipsci[], IODescPtr iperr[], IODescPtr ipdq[],
                                     sumvar[i] += nse[0];
                                 }
                             }
+
                         } /* End of loop over first amp used for line */
 
                         /* SECOND AMP */
@@ -778,6 +825,8 @@ int acsrej_loop (IODescPtr ipsci[], IODescPtr iperr[], IODescPtr ipdq[],
                            }
                         } /* End of loop over second amp used for line */
 
+                        /* If pixels are not marked as rejected, then use the 
+                        exposure and error data for the output error computation */
                         for (i = 0; i < dim_x; i++) {
                             /* output DQF is just the logical OR of all
                               (original) input DQF */
@@ -841,7 +890,7 @@ int acsrej_loop (IODescPtr ipsci[], IODescPtr iperr[], IODescPtr ipdq[],
 
             /* BOTH AMPS */
             for (i = 0; i < dim_x; i++) {
-                /* Total EXPTIME (in seconds) of from images where this pixel
+                /* Total EXPTIME (in seconds) from images where this pixel
                    is not flagged as CR. */
                 pixexp = PIX(efacsum, i, line, dim_x);
 
@@ -855,10 +904,10 @@ int acsrej_loop (IODescPtr ipsci[], IODescPtr iperr[], IODescPtr ipdq[],
 
                     /* For final iter, convert variance to error.
                        sumvar is e^2
-                       avevar is e/s; goes to ERR
+                       avevar is e; goes to ERR
                     */
                     if (iter == (niter - 1)) {
-                        PPix(avevar, i, line) = sqrt(sumvar[i]) / pixexp;
+                        PPix(avevar, i, line) = (exptot / pixexp) * sqrt(err2[i]);
                     }
                 } else {
                     if (iter == (niter - 1)) {
@@ -925,18 +974,21 @@ int acsrej_loop (IODescPtr ipsci[], IODescPtr iperr[], IODescPtr ipdq[],
     free (sumvar);
     free (zerofbuf);
     free (zerosbuf);
+    free (err2);
 
     for (k = 0; k < nimgs; k++) {
         freeFloatBuff (pic[k], buffheight);
         freeFloatBuff (thresh[k], buffheight);
         freeFloatBuff (spthresh[k], buffheight);
         freeShortBuff (mask[k], buffheight);
+        freeFloatBuff (scroll_buferr[k], buffheight);
     }
 
     free (mask);
     free (pic);
     free (thresh);
     free (spthresh);
+    free (scroll_buferr);
     free (buf);
     free (buferr);
     free (bufdq);

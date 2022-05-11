@@ -4,8 +4,10 @@
 # include <stdlib.h>		/* calloc */
 # include <time.h>
 # include <string.h>
+#include <stdbool.h>
+#include <limits.h>
 
-int status = 0;			/* zero is OK */
+extern int status;			/* zero is OK */
 
 # include <c_iraf.h>		/* for c_irafinit */
 #include "hstcal_memory.h"
@@ -25,6 +27,7 @@ int status = 0;			/* zero is OK */
 #  include <omp.h>
 # endif
 
+static char *program;
 struct TrlBuf trlbuf = { 0 };
 
 /* Standard string buffer for use in messages */
@@ -38,19 +41,21 @@ char MsgText[MSG_BUFF_LENGTH]; // Global char auto initialized to '\0'
 
  */
 
+int doMainCTE (int argc, char **argv);
+
 static void printSyntax()
 {
-    printf ("syntax:  acscte.e [--help] [-t] [-v] [-q] [--version] [--gitinfo] [-1|--nthreads <N>] [--ctegen <1|2>] [--pctetab <path>] input [output]\n");
+    printf ("syntax:  %s [--help] [-t] [-v] [-q] [--version] [--gitinfo] [-1|--nthreads <N>] [--ctegen <1|2>] [--pctetab <path>] [--forwardModelOnly] input [output]\n", program);
 }
 static void printHelp(void)
 {
     printSyntax();
 }
 
-int main (int argc, char **argv) {
+int doMainCTE (int argc, char **argv) {
 
     char *inlist;		/* input blv_tmp file name */
-    char *outlist;		/* output blc_tmp file name */
+    char *outlist;		/* output file name */
     /*int switch_on = 0;*/	/* was any switch specified? */
     int printtime = NO;	/* print time after each step? */
     int verbose = NO;	/* print additional info? */
@@ -58,6 +63,7 @@ int main (int argc, char **argv) {
     int quiet = NO;	/* print additional info? */
     unsigned cteAlgorithmGen = 0; //Use gen1cte algorithm rather than gen2 (default)
     unsigned nThreads = 0;
+    bool forwardModelOnly = false;
     char pcteTabNameFromCmd[CHAR_LINE_LENGTH];
     *pcteTabNameFromCmd = '\0';
     int too_many = 0;	/* too many command-line arguments? */
@@ -71,8 +77,8 @@ int main (int argc, char **argv) {
     int n;
 
     /* Input and output suffixes. */
-    char isuffix[] = "_blv_tmp";
-    char osuffix[] = "_blc_tmp";
+    char isuffix[CHAR_FNAME_LENGTH] = "_blv_tmp";
+    char osuffix[CHAR_FNAME_LENGTH] = "_blc_tmp"; // "_ctefmod" for forwardModelOnly==true - gets assigned later.
 
     /* A structure to pass the calibration switches to ACSCTE */
     CalSwitch ccd_sw;
@@ -84,7 +90,9 @@ int main (int argc, char **argv) {
     void FreeRefFile (RefFileInfo *);
     void initSwitch (CalSwitch *);
 
-    int ACScte (char *, char *, CalSwitch *, RefFileInfo *, int, int, int, const unsigned cteAlgorithmGen, const char * pcteTabNameFromCmd);
+    int ACScte (char *, char *, CalSwitch *, RefFileInfo *, int, int, int,
+            const unsigned cteAlgorithmGen, const char * pcteTabNameFromCmd,
+            const bool forwardModelOnly);
     int DefSwitch (char *);
     int MkName (char *, char *, char *, char *, char *, int);
     void WhichError (int);
@@ -95,6 +103,11 @@ int main (int argc, char **argv) {
     int pctecorr;
     int LoadHdr (char *, Hdr *);
     int GetSwitch (Hdr *, char *, int *);
+
+    /* For program basename */
+    char program_buf[PATH_MAX];
+
+    status = 0;
 
     c_irafinit (argc, argv);
 
@@ -126,6 +139,21 @@ int main (int argc, char **argv) {
 
     /* Initial values. */
     initSwitch (&ccd_sw);
+
+    /* Obtain program basename */
+    if ((program = strrchr(argv[0], '/')) != NULL) {
+
+        strcpy(program_buf, program + 1);
+        program = program_buf;
+
+    } else {
+
+        program = argv[0];
+    }
+
+    if (!strcmp(program, "acscteforwardmodel.e")) {
+        forwardModelOnly = true;
+    }
 
     for (i = 1;  i < argc;  i++) {
 
@@ -196,6 +224,12 @@ int main (int argc, char **argv) {
                 strcpy(pcteTabNameFromCmd, argv[i]);
                 continue;
             }
+            else if (strncmp(argv[i], "--forwardModelOnly", 18) == 0)
+            {
+                printf("WARNING: running CTE forward model only");
+                forwardModelOnly = true;
+                continue;
+            }
             else
             {
                 if (argv[i][1] == '-')
@@ -241,6 +275,13 @@ int main (int argc, char **argv) {
 
     /* Copy command-line value for QUIET to structure */
     SetTrlQuietMode(quiet);
+
+    if (forwardModelOnly && cteAlgorithmGen == 1)
+    {
+        trlerror("--forwardModelOnly NOT compatible with 1st generation CTE algorithm");
+        freeOnExit(&ptrReg);
+        exit (INVALID_VALUE);
+    }
 
     if (cteAlgorithmGen)
     {
@@ -334,7 +375,12 @@ int main (int argc, char **argv) {
             continue;
         }
         if (pctecorr == PERFORM)
-            strcpy(osuffix, "_blc_tmp");
+        {
+            if (forwardModelOnly)
+                strcpy(osuffix, "_ctefmod");
+            else
+                strcpy(osuffix, "_blc_tmp");
+        }
         else {
             WhichError (status);
             sprintf (MsgText, "Skipping %s because PCTECORR is not set to PERFORM", input);
@@ -351,7 +397,7 @@ int main (int argc, char **argv) {
 
         /* Calibrate the current input file. */
         if ((status = ACScte (input, output, &ccd_sw, &refnames, printtime, verbose,
-                    nThreads, cteAlgorithmGen, pcteTabNameFromCmd))) {
+                    nThreads, cteAlgorithmGen, pcteTabNameFromCmd, forwardModelOnly))) {
             sprintf (MsgText, "Error processing %s.", input);
             trlerror (MsgText);
             WhichError (status);

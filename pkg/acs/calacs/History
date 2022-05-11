@@ -1,6 +1,103 @@
+### 08-Feb-2022 - MDD - Version 10.3.5   
+    Update to the cosmic ray rejection algorithm as to the way
+    the output ERR extension is computed for the CRJ file. The 
+    output ERR is now propagated from the usable input ERR extensions
+    versus being computed by a model.
+
+### 11-Jan-2022 - MDD - Version 10.3.4   
+    Fixed a bug which was triggered ONLY when executing the condaforge
+    distribution on MacOS where failure was due to a missing return 
+    statement.  Only call computeDarktime() once to compute the updated
+    DARKTIME primary keyword and function return is now void. Update
+    the keyword in main to avoid passing extra data by reference.
+
+### 24-May-2021 - MDD - Version 10.3.3
+    Fixed a bug associated with the FLASHDUR computation.  The FLASHDUR
+    keyword was updated in the CRJ/CRC headers to be the sum of
+    the individual input images as this keyword is used in ACS2D to
+    scale the flash reference file for flash correction.  Fixed a bug
+    associated with the DARKTIME computation.  Code written for CALACS
+    10.2.2 was moved from ACS2D to ACSCCD so every BLV_TMP file has the
+    correct DARKTIME keyword value.  Also, the DARKTIME keyword was updated
+    in the CRJ/CRC headers to be the sum of the individual input images. Only
+    the DARKTIME value in the input file header is used to scale the dark
+    reference file for the dark correction.
+
+### 26-Apr-2021 - MDD - Version 10.3.2
+    Fixed a bug introduced when the build manager reworked code to remove circular
+    dependencies caused by the introduction of the acscteforwardmodel code.  The
+    name of the executable was inadvertently changed from "acscteforwardmodel.e"
+    to "acsforwardmodel.e".  The ACS team requested the name be changed back to
+    the original as scripts and documentation are impacted.
+
+###  07-Apr-2021 - MDD - Version 10.3.1
+    Fixed a bug introduced when the build manager reworked code to
+    remove circular dependencies caused by the introduction of the
+    acscteforwardmodel code.  Resolved the segmentation fault when
+    trying to execute the standalone executables "acscte.e" and
+    "acsforwardmodel.e".
+
+### 12-Feb-2021 - JH (Done during build creation for operations for 10.3.0)
+    Build manager made changes to the main routines and wscript files (predominantly)
+    to eliminate some circular dependency.
+
+### 31-Dec-2020 - MDD - Version 10.3.0
+    Implementation to use an image to detect and flag full-well
+    saturation versus a simple scalar.  The new routine,
+    dofwsat.c, is modelled on dobias.c. The detect/flagging
+    occurs after bias correction, conversion to electrons, and
+    blev correction.
+
+### 24-Jun-2020 - MDD -- Version 10.2.4 
+    Removed/modified/updated routines which used copyrighted code.
+    Updates implemented Oct 2019, but installation delayed for higher 
+    priority updates.
+
+### 29-Apr-2020 - MDD -- Version 10.2.3 
+    Modified "dodqi" to accommodate the A-to-D saturation threshold 
+    which is now defined in the CCDTAB. The threshold is no longer 
+    a constant and has different behavior pre- and post-SM4.
+    This modification uses Updated CCDTAB files for HRC and WFC.
+
+### 10-Jan-2020 - MDD -- Version 10.2.2
+    Removed hard-coded darktime scaling value and read new post-flashed and
+    unflashed columns from updated CCDTAB reference file to use for the
+    offset to the DARKTIME FITS keyword value under appropropriate
+    date and supported subarray criteria.  The DARKTIME keyword value is 
+    now the default scaling factor for the superdarks, with the offset 
+    being an additive correction to DARKTIME under appropriate circumstances
+    The offset only applies to WFC and HRC.
+
+### 25-Sep-2019 - MDD -- Version 10.2.1
+    CALACS has been modified to allow the PHOTMODE keyword to be updated with
+    the MJD for the SBC, in addition to the HRC and WFC. This will allow
+    time-dependent sensitivity to be applied properly to SBC.
+
+### 06-Mar-2019 - MDD -- Version 10.2.0
+    For bias or dark images, ACSREJ ignores the bad pixels (BPIXTAB flag of 4) 
+    during the combination process for the SCI and ERR arrays (i.e. treat bad 
+    pixels as normal pixels).
+
+### 09-Aug-2018 - JAN/MDD -- Version 10.1.0
+    The dark correction, DARKCORR step of the ACS2D algorithm, has been modified
+    to work directly on the full 2D data rather than on a line-by-line basis PR#315.
+
+    The bias shift correction, BLEVCORR step of the ACSCCD algorithm, has been
+    upgraded to accommodate the new supported subarrays which have both physical
+    and virtual overscan PR#312. This is the same algorithm which applies to full
+    frame data.
+
+    Forward model functionality was implemented which exploits the existing CTE
+    code and usage (Generation 2 only). Instead of correcting the CTE trails, the
+    forward model functionality simulates (adds) the trails PR#313. This
+    functionality should be accessed via the new ACSTOOLS function, acscteforwardmodel.py
+
+    Updated ACS library routine, getacskeys, updated to call the new HSTIO function
+    which robustly determines the number of IMSETS in a FITS file PR#330.
+
 ### 19-Jan-2018 - JAN/MDD -- Version 10.0.0
-    ACSREJ calculations now in electrons, threshold uses ERR arrays.  CALACS 
-    uses amp-dependent read noise for threshold to determine if a correction can 
+    ACSREJ calculations now in electrons, threshold uses ERR arrays.  CALACS
+    uses amp-dependent read noise for threshold to determine if a correction can
     be applied. Bug fixes.
 
 ### 01-Jun-2017 - JAN -- Version 9.2.0

@@ -25,8 +25,6 @@ typedef unsigned char Byte;
 
 # define MAX_DQ     65535
 
-# define ATOD_SATURATE 65534
-
 /* Number of lines to extract from binned images for unbinning */
 # define SECTLINES  2
 
@@ -86,6 +84,9 @@ void errchk ();                 /* HSTIO error check */
 # define       DEFAULT_OFFSET   3
 
 # define        SM4MJD          54967
+
+/* October 01, 2016: Date of first observation in Cycle 24. The new ACS subarray configurations validated for Cycle 24. */
+# define        CYCLE24         57662
 
 /* A reference image. */
 typedef struct {

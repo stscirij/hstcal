@@ -8,7 +8,7 @@ extern "C" {
 # include <stdlib.h>
 # include <stdio.h>
 
-# define HSTIO_VERSION "HSTIO Version 2.6 (11-Mar-2010)"
+# define HSTIO_VERSION "HSTIO Version 2.7 (09-Aug-2018)"
 
 /*
 ** Data Structures and I/O Function Declarations for
@@ -791,6 +791,10 @@ IShortHdrLine }
 void initSingleGroupLine  (SingleGroupLine *);
 int  allocSingleGroupLine (SingleGroupLine *, int);
 void freeSingleGroupLine  (SingleGroupLine *);
+
+int getNumHDUs(const char * fileName, int * hduNum);
+int findTotalNumberOfImsets(const char * fileName, const char * setContainsExtName, int * total);
+int findTotalNumberOfHDUSets(const char * fileName, const char * setContainsExtName, const int hduType, int * total);
 
 #if defined(__cplusplus)
 }

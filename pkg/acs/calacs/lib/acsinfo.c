@@ -11,6 +11,10 @@
    17-Apr-2002 WJH - removed all references to 'statcorr'.
    12-Dec-2012 PLL - added CTE corrected flash reference file.
    12-Aug-2013 PLL - Tidied up code layout.
+   05-Dec-2019 MDD - Added overhead for post-flash, unflashed, and DARKTIME values.
+   29-Apr-2020 MDD - Added overhead for atod_saturate value.
+   11-May-2020 MDD - Added variable, satmap - the reference image for full-well saturation.
+                     Use of this image renders acs->saturate variable OBSOLETE.
 */
 #include <string.h>
 
@@ -85,6 +89,7 @@ void ACSInit (ACSInfo *acs) {
     }
     acs->ampx = 0;
     acs->ampy = 0;
+    acs->atod_saturate = 0;
     acs->saturate = 0.;
     acs->trimx[0] = 0;
     acs->trimx[1] = 0;
@@ -100,6 +105,9 @@ void ACSInit (ACSInfo *acs) {
     acs->biassectb[1] = 0;
     acs->flashdur = 0;
     acs->flashstatus[0] = '\0';
+    acs->overhead_postflashed = 0.;
+    acs->overhead_unflashed = 0.;
+    acs->darktime = 0.;
 
     /* Initialize Calibration switches */
     acs->dqicorr = OMIT;
@@ -126,6 +134,7 @@ void ACSInit (ACSInfo *acs) {
     InitRefTab (&(acs->oscn));
     InitRefTab (&(acs->atod));
     InitRefTab (&(acs->pcte));
+    InitRefImg (&(acs->satmap));
 
     /* Initialize reference images and tables for ACS2D */
     InitRefImg (&(acs->dark));
