@@ -2,13 +2,14 @@
 # include <stdlib.h>	/* calloc */
 # include <string.h>
 
+#include "hstcal.h"
 # include "hstio.h"
 # include "wf3.h"
 # include "calwf3.h"
-# include "wf3err.h"
+# include "hstcalerr.h"
 # include "wf3corr.h"
 # include "wf3asn.h"	/* Contains association table structures */
-# include "trl.h"
+# include "trlbuf.h"
 
 /* ProcessIR: This routine controls the overall flow of processing
    for IR images.
@@ -99,7 +100,7 @@ int ProcessIR (AsnInfo *asn, WF3Info *wf3hdr, int printtime) {
 
             /*  Allocate space for WF3REJ input image list */
             if (asn->rptcorr == PERFORM) {
-                nchars = asn->spmems[posid] * (SZ_FNAME+1);
+                nchars = asn->spmems[posid] * (CHAR_FNAME_LENGTH+1);
                 wf3rej_input = (char *) calloc( nchars + 1, sizeof(char));
 
                 /* Initialize this string to NULL */

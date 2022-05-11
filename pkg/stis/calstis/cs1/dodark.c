@@ -11,7 +11,7 @@
 # include "hstio.h"
 # include "stis.h"
 # include "calstis1.h"
-# include "stiserr.h"
+# include "hstcalerr.h"
 # include "stistemperature.h"	/* defines DARKRATE */
 # include "stisdef.h"
 
@@ -217,7 +217,7 @@ int sci_extver     i: IMSET number in input (science) file
 	    /* Bin the dark image down to the actual size of x. */
 
 	    initSingleGroup (&z);
-	    allocSingleGroup (&z, x->sci.data.nx, x->sci.data.ny);
+	    allocSingleGroup (&z, x->sci.data.nx, x->sci.data.ny, True);
 	    if ((status = bin2d (&y, x0, y0, rx, ry, avg, &z))) {
 		printf ("ERROR    (darkcorr) size mismatch.\n");
 		return (status);

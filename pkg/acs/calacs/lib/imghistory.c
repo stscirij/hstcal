@@ -1,14 +1,15 @@
 # include <stdio.h>
 # include <string.h>
+#include "hstcal.h"
 # include "hstio.h"
 # include "acs.h"
-# include "acserr.h"
+# include "hstcalerr.h"
 
 /* This routine writes history records for a reference image, including
    the name of the file and the pedigree and descrip values.
 */
 
-int ImgHistory (RefImage *ref, Hdr *phdr) {
+int ImgHistory (const RefImage *ref, Hdr *phdr) {
 
 /* arguments:
 RefImage *ref     i: info about reference image
@@ -17,7 +18,7 @@ Hdr *phdr         io: header to receive history records
 
 	extern int status;
 
-	char history[ACS_LINE];
+	char history[CHAR_LINE_LENGTH];
 
 	strcpy (history, "  reference image ");
 	strcat (history, ref->name);

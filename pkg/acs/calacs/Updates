@@ -1,3 +1,145 @@
+Update for version 10.3.5 - 08-Feb-2022 (MDD)
+	pkg/acs/calacs/Dates
+	pkg/acs/calacs/History
+	pkg/acs/calacs/Updates
+	pkg/acs/calacs/include/acsversion.h
+    pkg/acs/calacs/acsrej/acsrej_do.c
+    pkg/acs/calacs/acsrej/acsrej_loop.c
+
+Update for version 10.3.4 - 11-Jan-2022 (MDD)
+	pkg/acs/calacs/Dates
+	pkg/acs/calacs/History
+	pkg/acs/calacs/Updates
+	pkg/acs/calacs/acsccd/doccd.c
+	pkg/acs/calacs/include/acsversion.h
+
+Update for version 10.3.3 - 24-May-2021 (MDD)
+	pkg/acs/calacs/Dates
+	pkg/acs/calacs/History
+	pkg/acs/calacs/Updates
+    pkg/acs/calacs/acs2d/dodark.c
+    pkg/acs/calacs/acsccd/dobias.c
+    pkg/acs/calacs/acsccd/doccd.c
+	pkg/acs/calacs/acsrej/acsrej_check.c
+	pkg/acs/calacs/acsrej/acsrej_do.c
+	pkg/acs/calacs/include/acsversion.h
+
+Update for version 10.3.2 - 26-Apr-2021 (MDD)
+	pkg/acs/calacs/Dates
+	pkg/acs/calacs/History
+	pkg/acs/calacs/Updates
+	pkg/acs/calacs/acscte/maincte.c
+	pkg/acs/calacs/acscte/wscript
+	pkg/acs/calacs/include/acsversion.h
+
+Update for version 10.3.1 - 07-Apr-2021 (MDD)
+	pkg/acs/calacs/acscte/maincte.c
+	pkg/acs/calacs/include/acsversion.h
+
+Update - 12-Feb-2021 (JH)
+    pkg/acs/calacs/acs2d/main2d.c
+    pkg/acs/calacs/acsccd/mainccd.c
+    pkg/acs/calacs/acscte/forward_model/main.c
+    pkg/acs/calacs/acscte/forward_model/wscript
+    pkg/acs/calacs/acscte/maincte.c
+    pkg/acs/calacs/acscte/wscript
+    pkg/acs/calacs/acsrej/mainrej.c
+    pkg/acs/calacs/acssum/mainsum.c
+    pkg/acs/calacs/calacs/acsmain.c
+    pkg/acs/calacs/calacs/wscript
+   
+Update for version 10.3.0 - 31-Dec-2020 (MDD)
+	pkg/acs/calacs/Dates
+	pkg/acs/calacs/History
+	pkg/acs/calacs/Updates
+	pkg/acs/calacs/acsccd/doccd.c
+	pkg/acs/calacs/acsccd/dofwsat.c
+	pkg/acs/calacs/acsccd/getacsflag.c
+	pkg/acs/calacs/include/acsdq.h
+	pkg/acs/calacs/include/acsinfo.h
+	pkg/acs/calacs/include/acsversion.h
+	pkg/acs/calacs/lib/acsinfo.c
+	pkg/acs/calacs/lib/dodqi.c
+	pkg/acs/calacs/lib/findbin.c
+	pkg/acs/calacs/lib/wscript
+
+Update for version 10.2.4 - 24-Jun-2020 (MDD)
+    pkg/acs/calacs/Dates
+    pkg/acs/calacs/History
+    pkg/acs/calacs/Updates
+    pkg/acs/calacs/acsrej/piksrt.c
+
+Update for version 10.2.3 - 29-Apr-2020 (MDD)
+	pkg/acs/calacs/Dates
+	pkg/acs/calacs/History
+	pkg/acs/calacs/Updates
+	pkg/acs/calacs/include/acs.h
+	pkg/acs/calacs/include/acsinfo.h
+	pkg/acs/calacs/include/acsversion.h
+	pkg/acs/calacs/lib/acsinfo.c
+	pkg/acs/calacs/lib/getccdtab.c
+	pkg/acs/calacs/lib/dodqi.c
+
+Update for version 10.2.2 - 10-Jan-2020 (MDD)
+    pkg/acs/calacs/Dates
+    pkg/acs/calacs/History
+    pkg/acs/calacs/Updates
+    pkg/acs/calacs/acs2d/dodark.c
+    pkg/acs/calacs/include/acs.h
+	pkg/acs/calacs/include/acsinfo.h
+	pkg/acs/calacs/include/acsversion.h
+	pkg/acs/calacs/lib/acsinfo.c
+	pkg/acs/calacs/lib/getacskeys.c
+	pkg/acs/calacs/lib/getccdtab.c
+
+Update for version 10.2.1 - 25-Sep-2019 (MDD)
+    pkg/acs/calacs/Dates
+    pkg/acs/calacs/History
+    pkg/acs/calacs/Updates
+    pkg/acs/calacs/acs2d/photmode.c
+
+Update for version 10.2.0 - 06-Mar-2019 (MDD)
+    pkg/acs/calacs/acsrej/acsrej_do.c
+    pkg/acs/calacs/acsrej/acsrej_loop.c
+
+Update for version 10.1.0 - 09-Aug-2018 (JAN/MDD)
+
+Update for version 10.0.0 - 19-Jan-2018 (JAN/MDD)
+
+Update for version 9.2.0 - 01-Jun-2017 (JAN) : git diff f0c177019cb4c159c801e0228be058269701f577  6472dcef5b86b1c240b35933e5bc7284c53dbafd --name-only
+    ctegen2/ctegen2.c
+    ctegen2/ctegen2.h
+    ctegen2/ctehelpers.c
+    ctegen2/wscript
+    hstio/hstio.c
+    include/hstio.h
+    pkg/acs/calacs/Dates
+    pkg/acs/calacs/History
+    pkg/acs/calacs/Updates
+    pkg/acs/calacs/acscte/acscte.c
+    pkg/acs/calacs/acscte/docte.c
+    pkg/acs/calacs/acscte/dopcte-gen2.c
+    pkg/acs/calacs/acscte/dopcte.c
+    pkg/acs/calacs/acscte/getcteflag.c
+    pkg/acs/calacs/acscte/maincte.c
+    pkg/acs/calacs/acscte/pcte.h
+    pkg/acs/calacs/acscte/pcte_fixycte.c
+    pkg/acs/calacs/acscte/pcte_funcs.c
+    pkg/acs/calacs/acscte/wscript
+    pkg/acs/calacs/calacs/acsmain.c
+    pkg/acs/calacs/calacs/calacs.c
+    pkg/acs/calacs/calacs/calacs.h
+    pkg/acs/calacs/include/acs.h
+    pkg/acs/calacs/include/acsinfo.h
+    pkg/acs/calacs/include/acsversion.h
+    pkg/acs/calacs/lib/acsinfo.c
+    pkg/acs/calacs/lib/ucalver.c
+    pkg/acs/calacs/lib/wscript
+    wscript
+
+Update for version 9.1.1 - TBD (PLL)
+    acsrej/*
+
 Update for version 9.1.0 - 21-Feb-17 (PLL)
     acsccd/doccd.c
     acsccd/dosink.c

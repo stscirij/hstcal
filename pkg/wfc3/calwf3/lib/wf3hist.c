@@ -1,10 +1,11 @@
 # include <stdio.h>
 # include <stdlib.h>	/* calloc */
 # include <string.h>
+#include "hstcal.h"
 # include "hstio.h"
 # include "wf3.h"
 # include "wf3info.h"
-# include "wf3err.h"
+# include "hstcalerr.h"
 
 
 /* These routines check whether pedigree indicates that the calibration
@@ -379,7 +380,7 @@ int *logit        o: true if we should log reference file names
 	char *history;
 	int PutKeyStr (Hdr *, char *, char *, char *);
 
-	if ((history = (char *) calloc (SZ_LINE+1, sizeof (char))) == NULL)
+	if ((history = (char *) calloc (CHAR_LINE_LENGTH+1, sizeof (char))) == NULL)
 	    return (status = OUT_OF_MEMORY);
 
 	strcpy (history, calSwitch);

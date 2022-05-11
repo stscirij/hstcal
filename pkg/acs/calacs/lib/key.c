@@ -1,8 +1,9 @@
 # include <stdio.h>
 # include <ctype.h>                 /* for isspace */
 # include <string.h>                /* for strcpy, strlen */
+#include "hstcal.h"
 # include "hstio.h"
-# include "acserr.h"
+# include "hstcalerr.h"
 # include "acs.h"                /* for message output */
 
 static void KeyMissing (char *);    /* prints error message */

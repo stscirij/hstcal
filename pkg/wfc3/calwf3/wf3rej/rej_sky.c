@@ -4,9 +4,10 @@
 # include   <limits.h>
 # include   <math.h>
 
+#include "hstcal.h"
 # include "hstio.h"
 # include   "wf3.h"    /* for message output */
-# include   "wf3err.h"
+# include   "hstcalerr.h"
 # include   "wf3info.h"
 # include   "rej.h"
 

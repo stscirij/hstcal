@@ -8,13 +8,14 @@
 # include <stdlib.h>
 # include <string.h>
 
+#include "hstcal.h"
 # include "hstio.h"	/* defines HST I/O functions */
 
 # include "wf3.h"
 # include "wf3info.h"
-# include "wf3err.h"     /* error values */
+# include "hstcalerr.h"     /* error values */
 # include "wf3corr.h"    /* calibration switch names */
-# include "trl.h"        /* trailer functions */
+# include "trlbuf.h"        /* trailer functions */
 
 extern int status;
 
@@ -54,7 +55,7 @@ int WF3ir (char *raw_file, char *flt_file, IR_Switch *ir_sw,
 	Hdr phdr;			/* Primary header */
 	MultiNicmosGroup  allinput;	/* Input image data */
 	SingleNicmosGroup crimage;	/* CR reject output image */
-	char ima_file[SZ_FNAME+1];	/* Intermediate MultiAccum file name */
+	char ima_file[CHAR_FNAME_LENGTH+1];	/* Intermediate MultiAccum file name */
 	int sizex, sizey;		/* Output trimmed image sizes */
 
 	WF3Info wf3;	/* calibration switches, reference files, etc. */
@@ -251,8 +252,8 @@ static void mkNames (char *rawfile, char *imafile, char *fltfile) {
 	Bool ext1;			/* Was a "fits" extension specified? */
 	Bool ext2;			/* Was a "fit"  extension specified? */
 	Bool israw;			/* Was a raw file suffix specified? */
-	char inroot[SZ_FNAME+1];	/* root name of input file */
-	char outroot[SZ_FNAME+1];	/* root name of output file */
+	char inroot[CHAR_FNAME_LENGTH+1];	/* root name of input file */
+	char outroot[CHAR_FNAME_LENGTH+1];	/* root name of output file */
 	int  rlen;			/* length of root name */
 	char fitsext1[] = ".fits";	/* FITS file extension (default) */
 	char fitsext2[] = ".fit";	/* FITS file extension (alternate) */
@@ -351,8 +352,8 @@ void InitIRTrl (char *input, char *output) {
 
         extern int status;
 
-        char trl_in[SZ_LINE+1];         /* trailer filename for input */
-        char trl_out[SZ_LINE+1];        /* output trailer filename */
+        char trl_in[CHAR_LINE_LENGTH+1];         /* trailer filename for input */
+        char trl_out[CHAR_LINE_LENGTH+1];        /* output trailer filename */
         int exist;
 
         char isuffix[] = "_raw";
@@ -361,7 +362,6 @@ void InitIRTrl (char *input, char *output) {
         int MkName (char *, char *, char *, char *, char *, int);
         void WhichError (int);
         int TrlExists (char *);
-        void SetTrlOverwriteMode (int);
 
         /* Initialize internal variables */
         trl_in[0] = '\0';
@@ -369,14 +369,14 @@ void InitIRTrl (char *input, char *output) {
         exist = EXISTS_UNKNOWN;
 
         /* Start by stripping off suffix from input/output filenames */
-        if (MkName (input, isuffix, "", TRL_EXTN, trl_in, SZ_LINE)) {
+        if (MkName (input, isuffix, "", TRL_EXTN, trl_in, CHAR_LINE_LENGTH)) {
             WhichError (status);
             sprintf (MsgText, "Couldn't determine trailer filename for %s",
                      input);
             trlmessage (MsgText);
         }
 
-        if (MkName (output, osuffix, "", TRL_EXTN, trl_out, SZ_LINE)) {
+        if (MkName (output, osuffix, "", TRL_EXTN, trl_out, CHAR_LINE_LENGTH)) {
             WhichError (status);
             sprintf (MsgText, "Couldn't create trailer filename for %s",
                      output);

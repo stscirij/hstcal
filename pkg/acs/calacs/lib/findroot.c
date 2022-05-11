@@ -1,15 +1,16 @@
 # include <stdio.h>
 # include <string.h>
 
+#include "hstcal.h"
 # include "acs.h"	/* defines ACS data structures */
 
 # define NSUF	7
 
-void FindAsnRoot (char *input, char *root) {
+void FindAsnRoot (const char *input, char *root) {
 
 	int i;
 	int in_len;
-	char filename[ACS_FNAME+1];
+	char filename[CHAR_FNAME_LENGTH+1];
 	
 	/* names of ACS product suffixes */
 	char prodsuf[NSUF+3][ACS_CBUF+1] = {

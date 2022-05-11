@@ -1,7 +1,8 @@
 # include <stdio.h>
+#include "hstcal.h"
 # include "hstio.h"
 # include "acs.h"
-# include "acserr.h"
+# include "hstcalerr.h"
 
 /* This routine gets the LTV and LTM keyword values.  Note that this
    routine returns the values just as read from the header, which means

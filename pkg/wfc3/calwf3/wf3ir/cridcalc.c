@@ -3,11 +3,12 @@
 # include <stdlib.h>
 # include <string.h>
 
+#include "hstcal.h"
 # include "hstio.h"    /* defines HST I/O functions */
 # include "wf3.h"
 # include "wf3info.h"
 # include "wf3dq.h"
-# include "trl.h"
+# include "trlbuf.h"
 # include "wf3rej.h"
 # include "rej.h"
 

@@ -2,10 +2,11 @@
 # include <stdlib.h>	/* calloc */
 # include <string.h>
 
+#include "hstcal.h"
 # include "hstio.h"
 # include "acs.h"
 # include "acsinfo.h"
-# include "acserr.h"
+# include "hstcalerr.h"
 
 /*
 	This function builds the PHOTMODE string for the image header.
@@ -30,7 +31,7 @@ SingleGroup *x    io: image to be calibrated; primary header is modified
     int PutKeyStr (Hdr *, char *, char *, char *);
     int GetKeyFlt (Hdr *, char *, int, float, float *);
 
-	photstr = calloc (ACS_LINE+1, sizeof (char));
+	photstr = calloc (CHAR_LINE_LENGTH+1, sizeof (char));
 	scratch = calloc (ACS_FITS_REC+1, sizeof (char));
 	if (photstr == NULL || scratch == NULL)
 	    return (status = OUT_OF_MEMORY);
@@ -99,11 +100,10 @@ SingleGroup *x    io: image to be calibrated; primary header is modified
             }
 	    }
     }
-    /* Add 'mjd#' keyword to PHOTMODE string, but only for WFC and HRC */
-	if (acs2d->detector != MAMA_DETECTOR) {
-        sprintf (scratch, " MJD#%0.4f", acs2d->expstart);
-        strcat (photstr,scratch);
-    }
+    /* Add 'mjd#' keyword to PHOTMODE string, modified (Git Issue #435)
+       to apply to all ACS detectors */
+    sprintf (scratch, " MJD#%0.4f", acs2d->expstart);
+    strcat (photstr,scratch);
 
     if (acs2d->verbose){
         sprintf(MsgText,"Keyword PHOTMODE built as: %s",photstr);

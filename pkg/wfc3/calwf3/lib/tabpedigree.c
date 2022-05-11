@@ -1,9 +1,10 @@
 # include <stdio.h>
 # include <string.h>
+#include "hstcal.h"
 # include "xtables.h"
 # include "c_iraf.h"	/* clear_cvoserr */
 # include "wf3.h"
-# include "wf3err.h"
+# include "hstcalerr.h"
 
 /* This routine opens the reference table header and gets pedigree, descrip,
    and filetype. If the input name is null (or the first character is a blank),
@@ -42,7 +43,7 @@ int TabPedigree (RefTab *ref) {
 
 	IRAFPointer tp;		/* for the reference table */
 	int GotFileName (char *);
-	char filename[SZ_LINE+1];
+	char filename[CHAR_LINE_LENGTH+1];
 
 	ref->goodPedigree = GOOD_PEDIGREE;	/* initial value */
 

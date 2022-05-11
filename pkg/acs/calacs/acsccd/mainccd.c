@@ -5,18 +5,34 @@
 # include <time.h>
 # include <string.h>
 
-int status = 0;			/* zero is OK */
+extern int status;			/* zero is OK */
 
 # include <c_iraf.h>		/* for c_irafinit */
+#include "hstcal_memory.h"
+#include "hstcal.h"
 # include "ximio.h"
 # include "hstio.h"
 
 # include "acs.h"
 # include "acsinfo.h"
-# include "acserr.h"
+# include "hstcalerr.h"
 # include "acscorr.h"		/* calibration switch names for acsccd */
+# include "hstcalversion.h"
+# include "acsversion.h"
+#include "trlbuf.h"
 
-static void FreeNames (char *, char *, char *, char *);
+/* Standard string buffer for use in messages */
+char MsgText[MSG_BUFF_LENGTH]; // Global char auto initialized to '\0'
+struct TrlBuf trlbuf = { 0 };
+
+static void printSyntax(void)
+{
+    printf ("syntax:  acsccd [--help] [-t] [-v] [-q] [--version] [--gitinfo] input output\n");
+}
+static void printHelp(void)
+{
+    printSyntax();
+}
 
 /* This is the main module for ACSCCD.  It gets the input and output
  file names, calibration switches, and flags, and then calls ACSccd.
@@ -46,6 +62,7 @@ int main (int argc, char **argv) {
     int verbose = NO;	/* print additional info? */
     int quiet = NO;	/* print additional info? */
     int too_many = 0;	/* too many command-line arguments? */
+    int too_long = 0; /* command-line argument too long? */
     int i, j;		/* loop indexes */
     int k;
 
@@ -80,26 +97,31 @@ int main (int argc, char **argv) {
     int LoadHdr (char *, Hdr *);
     int GetSwitch (Hdr *, char *, int *);
 
+    status = 0;
+
     c_irafinit (argc, argv);
 
+    PtrRegister ptrReg;
+    initPtrRegister(&ptrReg);
     /* Allocate space for file names. */
-    inlist = calloc (ACS_LINE+1, sizeof (char));
-    outlist = calloc (ACS_LINE+1, sizeof (char));
-    input = calloc (ACS_LINE+1, sizeof (char));
-    output = calloc (ACS_LINE+1, sizeof (char));
+    inlist = calloc (CHAR_LINE_LENGTH+1, sizeof (char));
+    addPtr(&ptrReg, inlist, &free);
+    outlist = calloc (CHAR_LINE_LENGTH+1, sizeof (char));
+    addPtr(&ptrReg, outlist, &free);
+    input = calloc (CHAR_LINE_LENGTH+1, sizeof (char));
+    addPtr(&ptrReg, input, &free);
+    output = calloc (CHAR_LINE_LENGTH+1, sizeof (char));
+    addPtr(&ptrReg, output, &free);
 
-    if (inlist == NULL || outlist == NULL ||
-        input == NULL || output == NULL) {
+    if (!inlist || !outlist|| !input || !output) {
         printf ("Can't even begin; out of memory.\n");
+        freeOnExit(&ptrReg);
         exit (ERROR_RETURN);
     }
-    inlist[0] = '\0';
-    outlist[0] = '\0';
-    input[0] = '\0';
-    output[0] = '\0';
 
     /* Initialize the lists of reference file keywords and names. */
     InitRefFile (&refnames);
+    addPtr(&ptrReg, &refnames, &FreeRefFile);
 
     /* Initial values. */
     initSwitch (&ccd_sw);
@@ -121,7 +143,26 @@ int main (int argc, char **argv) {
             switch_on = 1;
         } else if (argv[i][0] == '-') {
         **********/
+        too_long = strlen(argv[i]) > CHAR_LINE_LENGTH;
         if (argv[i][0] == '-') {
+            if (!(strcmp(argv[i],"--version")))
+            {
+                printf("%s\n",ACS_CAL_VER);
+                freeOnExit(&ptrReg);
+                exit(0);
+            }
+            if (!(strcmp(argv[i],"--gitinfo")))
+            {
+                printGitInfo();
+                freeOnExit(&ptrReg);
+                exit(0);
+            }
+            if (!(strcmp(argv[i],"--help")))
+            {
+                printHelp();
+                freeOnExit(&ptrReg);
+                exit(0);
+            }
             for (j = 1;  argv[i][j] != '\0';  j++) {
                 if (argv[i][j] == 't') {
                     printtime = YES;
@@ -131,29 +172,42 @@ int main (int argc, char **argv) {
                     quiet = YES;
                 } else {
                     printf (MsgText, "Unrecognized option %s\n", argv[i]);
-                    FreeNames (inlist, outlist, input, output);
+                    printSyntax();
+                    freeOnExit(&ptrReg);
                     exit (1);
                 }
             }
         } else if (inlist[0] == '\0') {
-            strcpy (inlist, argv[i]);
+            strncpy (inlist, argv[i], CHAR_LINE_LENGTH);
         } else if (outlist[0] == '\0') {
-            strcpy (outlist, argv[i]);
+            strncpy (outlist, argv[i], CHAR_LINE_LENGTH);
         } else {
             too_many = 1;
         }
     }
-    if (inlist[0] == '\0' || too_many) {
-        printf ("syntax:  acsccd [-t] [-v] [-q] input output\n");
+    
+    if (inlist[0] == '\0' || too_many || too_long) {
+        if (too_many) {
+            fprintf(stderr, "ERROR: Too many arguments\n");
+        }
+        
+        if (too_long) {
+            fprintf(stderr, "ERROR: Input path exceeds maximum supported length (%d)\n",
+                    CHAR_LINE_LENGTH);
+        }
+        
+        printSyntax();
         /*
         printf ("  command-line switches:\n");
         printf ("       -dqi -atod -blev -bias\n");
         */
-        FreeNames (inlist, outlist, input, output);
+        freeOnExit(&ptrReg);
         exit (ERROR_RETURN);
     }
     /* Initialize the structure for managing trailer file comments */
     InitTrlBuf ();
+    addPtr(&ptrReg, &trlbuf, &CloseTrlBuf);
+    trlGitInfo();
 
     /* Copy command-line value for QUIET to structure */
     SetTrlQuietMode(quiet);
@@ -169,7 +223,9 @@ int main (int argc, char **argv) {
 
     /* Expand the templates. */
     i_imt = c_imtopen (inlist);
+    addPtr(&ptrReg, i_imt, &c_imtclose);
     o_imt = c_imtopen (outlist);
+    addPtr(&ptrReg, o_imt, &c_imtclose);
     n_in = c_imtlen (i_imt);
     n_out = c_imtlen (o_imt);
 
@@ -177,18 +233,17 @@ int main (int argc, char **argv) {
     if (CompareNumbers (n_in, n_out, "output"))
         status = 1;
     if (status) {
-        FreeNames (inlist, outlist, input, output);
-        CloseTrlBuf();
+        freeOnExit(&ptrReg);
         exit (ERROR_RETURN);
     }
 
     /* Loop over the list of input files. */
     for (n = 0;  n < n_in;  n++) {
 
-        k = c_imtgetim (i_imt, input, ACS_LINE);
+        k = c_imtgetim (i_imt, input, CHAR_LINE_LENGTH);
 
         if (n_out > 0)
-            k = c_imtgetim (o_imt, output, ACS_LINE);
+            k = c_imtgetim (o_imt, output, CHAR_LINE_LENGTH);
         else
             output[0] = '\0';
 
@@ -203,7 +258,7 @@ int main (int argc, char **argv) {
         /* Determine osuffix. */
         strcpy(osuffix, "_blv_tmp");
 
-        if (MkName (input, isuffix, osuffix, "", output, ACS_LINE)) {
+        if (MkName (input, isuffix, osuffix, "", output, CHAR_LINE_LENGTH)) {
             WhichError (status);
             sprintf (MsgText, "Skipping %s", input);
             trlmessage (MsgText);
@@ -218,23 +273,11 @@ int main (int argc, char **argv) {
         }
     }
 
-    /* Close lists of file names, and free name buffers. */
-    c_imtclose (i_imt);
-    c_imtclose (o_imt);
-    CloseTrlBuf();
-    FreeRefFile (&refnames);
-    FreeNames (inlist, outlist, input, output);
+
+    freeOnExit(&ptrReg);
 
     if (status)
         exit (ERROR_RETURN);
     else
         exit (0);
-}
-
-
-static void FreeNames (char *inlist, char *outlist, char *input, char *output) {
-    free (output);
-    free (input);
-    free (outlist);
-    free (inlist);
 }

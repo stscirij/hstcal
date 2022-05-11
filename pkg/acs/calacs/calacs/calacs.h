@@ -1,30 +1,34 @@
-/* calacs -- integrated calacs reduction
+#ifndef CALACS_INCL
+#define CALACS_INCL
 
+#include "trlbuf.h"
+#include "hstcal.h"
+
+/* calacs -- integrated calacs reduction
 Warren Hack, 1998 May 12: Initial version.
 Pey Lian Lim, 2013 Aug 9: Separated PCTECORR from ACSCCD.
-
 */
 
 typedef struct {
     /* name of association table exposure comes from */
-    char asn_table[ACS_LINE];
-    char crj_root[ACS_LINE];
+    char asn_table[CHAR_LINE_LENGTH];
+    char crj_root[CHAR_LINE_LENGTH];
 
     /* input, outroot, and temporary file names */
-    char rawfile[ACS_LINE];  /* uncalibrated science data */
-    char outroot[ACS_LINE];  /* file name _raw for output product */
-    char crjfile[ACS_LINE];  /* CR rejected, flat fielded science */
-    char crcfile[ACS_LINE];  /* crjfile + CTE correction */
-    char fltfile[ACS_LINE];  /* flat fielded science */
-    char flcfile[ACS_LINE];  /* fltfile + CTE correction */
-    char blv_tmp[ACS_LINE];  /* blevcorr, then CR flagged */
-    char blc_tmp[ACS_LINE];  /* blv_tmp + CTE correction */
-    char crj_tmp[ACS_LINE];  /* CR rejected, summed */
-    char crc_tmp[ACS_LINE];  /* crj_tmp + CTE correction */
-    char dthfile[ACS_LINE];  /* dither combined science data */
+    char rawfile[CHAR_LINE_LENGTH];  /* uncalibrated science data */
+    char outroot[CHAR_LINE_LENGTH];  /* file name _raw for output product */
+    char crjfile[CHAR_LINE_LENGTH];  /* CR rejected, flat fielded science */
+    char crcfile[CHAR_LINE_LENGTH];  /* crjfile + CTE correction */
+    char fltfile[CHAR_LINE_LENGTH];  /* flat fielded science */
+    char flcfile[CHAR_LINE_LENGTH];  /* fltfile + CTE correction */
+    char blv_tmp[CHAR_LINE_LENGTH];  /* blevcorr, then CR flagged */
+    char blc_tmp[CHAR_LINE_LENGTH];  /* blv_tmp + CTE correction */
+    char crj_tmp[CHAR_LINE_LENGTH];  /* CR rejected, summed */
+    char crc_tmp[CHAR_LINE_LENGTH];  /* crj_tmp + CTE correction */
+    char dthfile[CHAR_LINE_LENGTH];  /* dither combined science data */
     char mtype[SZ_STRKWVAL+1];  /* Role of exposure in association */
 
-    char rootname[ACS_LINE];  /* root name for set of obs */
+    char rootname[CHAR_LINE_LENGTH];  /* root name for set of obs */
 
     /* info about input science file */
     int detector;  /* integer code for detector */
@@ -35,7 +39,7 @@ typedef struct {
     int scibin[2];  /* binning factors */
     int scigain;    /* ccdgain values */
     int samebin;
-    int newbias;
+    int readnoise_only;
 
     /* calibration switches */
     int sci_basic_ccd;  /* do acsccd? (dqicorr or blevcorr) */
@@ -46,3 +50,5 @@ typedef struct {
     int sci_dthcorr;    /* dither combine science data? */
 
 } ACSInfo;
+
+#endif

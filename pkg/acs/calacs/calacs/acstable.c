@@ -23,13 +23,15 @@
 # include <stdio.h>
 # include <stdlib.h>
 # include <string.h>
+#include "hstcal.h"
 # include "xtables.h"    /* defines TABLE I/O functions */
 
 # include "hstio.h"    /* defines HST I/O functions */
 # include "acs.h"    /* defines ACS data structures */
 # include "acsasn.h"    /* defines ACS Association data structures */
-# include "acserr.h"
+# include "hstcalerr.h"
 # include "calacs.h"
+# include "trlbuf.h"
 
 # define CRLEN    2
 # define RPTLEN 2
@@ -41,11 +43,11 @@
 # define UNDERLINE_CHAR '_'
 
 typedef struct {
-    char memname[ACS_FNAME+1];
-    char mtype[ACS_FNAME+1];
+    char memname[CHAR_FNAME_LENGTH+1];
+    char mtype[CHAR_FNAME_LENGTH+1];
     Bool prsnt;
     int posid;
-    char type[ACS_FNAME+1];
+    char type[CHAR_FNAME_LENGTH+1];
 } RowInfo;
 
 static int IsProduct (char *);
@@ -156,16 +158,16 @@ int SetInput (AsnInfo *asn) {
     extern int status;
 
     /* Local Variables */
-    char filename[ACS_FNAME+1];
+    char filename[CHAR_FNAME_LENGTH+1];
     int exist;              /* EXISTS_YES or EXISTS_NO */
     int in_dot;
-    char linput[ACS_FNAME+1];        /* Lower case version of input */
+    char linput[CHAR_FNAME_LENGTH+1];        /* Lower case version of input */
     int incase;                         /* What kind of input do we have? */
 
     int DoesFileExist (char *);
     char *lowcase (char *, char *);
     int GetAsnName (char *, char *);
-    void FindAsnRoot (char *, char *);
+    void FindAsnRoot (const char *, char *);
 
     /* Initialize internal variables here... */
     filename[0] = '\0';
@@ -464,8 +466,6 @@ int GetAsnTable (AsnInfo *asn) {
     /* Function definitions */
     void freeAsnInfo (AsnInfo *);
     int  allocAsnInfo (AsnInfo *, int, int *);
-    void trlopenerr (char *);
-    void trlwarn (char *);
     char *lowcase (char *, char *);
     int MkName (char *, char *, char *, char *, char *, int);
     void initRowInfo (RowInfo *);
@@ -797,7 +797,7 @@ int GetAsnTable (AsnInfo *asn) {
 
                     /* Create full file name for this image */
                     if (MkName (exp[row].memname, "_raw", "_dth", "", asn->product[prodid].prodname,
-                    ACS_LINE) ) {
+                    CHAR_LINE_LENGTH) ) {
                         strcpy(asn->product[prodid].prodname, exp[row].memname);
                         strcat (asn->product[prodid].prodname,
                         "_dth.fits");
@@ -818,7 +818,7 @@ int GetAsnTable (AsnInfo *asn) {
                         /* Create full file name for this image */
                         if (MkName (exp[row].memname, "_raw", "_raw", "",
                         asn->product[prodid].subprod[posid].exp[expid].expname,
-                        ACS_LINE) ) {
+                        CHAR_LINE_LENGTH) ) {
 
                             strcpy(asn->product[prodid].subprod[posid].exp[expid].expname,
                         exp[row].memname);
@@ -831,7 +831,7 @@ int GetAsnTable (AsnInfo *asn) {
                         if (strstr(exp[row].type, "exp-dth") != NULL) {
                             if (!MkName (exp[row].memname, "_raw", "_flt", "",
                             asn->product[prodid].subprod[posid].spname,
-                            ACS_LINE) ) {
+                            CHAR_LINE_LENGTH) ) {
                                 strcpy(asn->product[prodid].subprod[posid].name, exp[row].memname);
                                 strcpy(asn->product[prodid].subprod[posid].mtype, exp[row].type);
                                 asn->product[prodid].subprod[posid].posid = exp[row].posid;
@@ -863,7 +863,7 @@ int GetAsnTable (AsnInfo *asn) {
 
                         if (MkName (exp[row].memname, "_raw", spname_ext, "",
                         asn->product[prodid].subprod[posid].spname,
-                        ACS_LINE) ) {
+                        CHAR_LINE_LENGTH) ) {
 
                             strcpy(asn->product[prodid].subprod[posid].spname,
                         exp[row].memname);

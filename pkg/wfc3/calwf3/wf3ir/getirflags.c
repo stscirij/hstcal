@@ -1,10 +1,11 @@
 # include <stdio.h>
 # include <string.h>		/* for strncmp, strcmp */
 
+#include "hstcal.h"
 # include "hstio.h"
 # include "wf3.h"
 # include "wf3info.h"
-# include "wf3err.h"		/* defines error codes */
+# include "hstcalerr.h"		/* defines error codes */
 
 static int checkCCD  (Hdr *, WF3Info *, int *);
 static int checkDQI  (Hdr *, WF3Info *, int *, int *);

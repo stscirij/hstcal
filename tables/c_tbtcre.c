@@ -1,6 +1,7 @@
 # include <stdlib.h>
 # include <string.h>
 # include <fitsio.h>
+#include "hstcal.h"
 # include "ctables.h"
 
 void c_tbtcre (IRAFPointer tp) {
@@ -88,7 +89,7 @@ IRAFPointer tp          i: table descriptor
                 tbCopyPrimary (template_fptr, fptr, &status);
 
 	    /* add or update FILENAME in the primary header */
-            filename = (char *)calloc (SZ_FNAME+1, sizeof(char));
+            filename = (char *)calloc (CHAR_FNAME_LENGTH+1, sizeof(char));
             for (i = strlen (tbl_descr->filename) - 1;  i >= 0;  i--) {
                 if (tbl_descr->filename[i] == '/')
                     break;

@@ -7,7 +7,7 @@
 # include "imphttab.h"
 # include "stis.h"
 # include "calstis1.h"
-# include "stiserr.h"
+# include "hstcalerr.h"
 # include "stisdef.h"
 # include "stistds.h"
 
@@ -59,7 +59,7 @@ StisInfo1 *sts     i: calibration switches, etc
 SingleGroup *x    io: image to be calibrated; primary header is modified
 */
 
-	int status;
+	extern int status;
 
 	PhotPar obs;
 

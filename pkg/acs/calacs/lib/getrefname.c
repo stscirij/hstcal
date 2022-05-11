@@ -1,6 +1,7 @@
 # include <stdlib.h>		/* calloc */
+#include "hstcal.h"
 # include "hstio.h"
-# include "acserr.h"
+# include "hstcalerr.h"
 # include "acs.h"
 
 /* This routine gets the value of a header keyword, expected to be the
@@ -38,7 +39,7 @@ char *refname     o: directory name and reference file name
 	FindRefFile (ref, keyword, refname, &foundit);
 
 	if (!foundit) {
-	    if (GetKeyStr (phdr, keyword, USE_DEFAULT, "", refname, ACS_LINE))
+	    if (GetKeyStr (phdr, keyword, USE_DEFAULT, "", refname, CHAR_LINE_LENGTH))
 		return (status);
 	}
 

@@ -5,7 +5,8 @@
 
 # include "hstio.h"	/* defines HST I/O functions */
 # include "msg.h"	/* for MsgText and asnerror */
-# include "trl.h"	/* for trlerror */
+# include "hstcal.h"
+# include "trlbuf.h"	/* for trlerror */
 
 void errchk() {
 		
@@ -38,11 +39,6 @@ void asnfilerr (char *name) {
 	asnerror (MsgText);
 }
 
-void asnmessage (char *message) {
-	printf ("%s\n", message);
-        fflush(stdout);
-}
-
 void ctemessage (char *message) {
 	printf ("%s\n", message);
         fflush(stdout);
@@ -52,30 +48,30 @@ void ctemessage (char *message) {
 
 void asnwarn (char *message) {
 
-	char line[SZ_LINE+1];
+	char line[CHAR_LINE_LENGTH+1];
 	
 	/* Use macro for beginning of Warning message */
 	sprintf(line,"%s",WARN_PREFIX);
 	strcat (line,message);
 
-    asnmessage(line);
+	printfAndFlush(line);
 }
 
 void asnerror (char *message) {
 		
-	char line[SZ_LINE+1];
+	char line[CHAR_LINE_LENGTH+1];
 	
 	/* Use macro for beginning of Warning message */
 	sprintf(line,"%s",ERR_PREFIX);
 	strcat (line,message);
 
-    asnmessage(line);
+	printfAndFlush(line);
 }
 
 
 void ctewarn (char *message) {
 
-	char line[SZ_LINE+1];
+	char line[CHAR_LINE_LENGTH+1];
 	
 	/* Use macro for beginning of Warning message */
 	sprintf(line,"%s",WARN_PREFIX);
@@ -86,7 +82,7 @@ void ctewarn (char *message) {
 
 void cteerror (char *message) {
 		
-	char line[SZ_LINE+1];
+	char line[CHAR_LINE_LENGTH+1];
 	
 	/* Use macro for beginning of Warning message */
 	sprintf(line,"%s",ERR_PREFIX);

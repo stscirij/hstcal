@@ -1,7 +1,8 @@
 # include <stdlib.h>		/* calloc */
+#include "hstcal.h"
 # include "hstio.h"
 # include "wf3.h"
-# include "wf3err.h"
+# include "hstcalerr.h"
 
 /* This routine gets the value of a header keyword, expected to be the
    name of a reference image or table.
@@ -38,7 +39,7 @@ char *refname     o: directory name and reference file name
 	FindRefFile (ref, keyword, refname, &foundit);
 
 	if (!foundit) {
-	    if (GetKeyStr (phdr, keyword, USE_DEFAULT, "", refname, SZ_LINE))
+	    if (GetKeyStr (phdr, keyword, USE_DEFAULT, "", refname, CHAR_LINE_LENGTH))
 		return (status);
 	}
 

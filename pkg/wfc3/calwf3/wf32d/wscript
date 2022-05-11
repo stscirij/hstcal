@@ -5,8 +5,9 @@ def build(bld):
         name = 'wf32d.e',
         source = 'main2d.c',
         target = 'wf32d.e',
-        use = ['calwf3', 'imphttab'] + bld.env.LOCAL_LIBS,
+        use = ['hstcallib', 'calwf3', 'imphttab'] + bld.env.LOCAL_LIBS,
         lib = bld.env.EXTERNAL_LIBS,
         libpath = bld.env.LIBPATH,
+        rpath=bld.env.LIBPATH_CFITSIO,
         install_path = '${PREFIX}/bin'
         )

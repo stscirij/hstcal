@@ -1,6 +1,6 @@
 # include <math.h>
 # include "hstio.h"
-# include "acserr.h"	/* SIZE_MISMATCH */
+# include "hstcalerr.h"	/* SIZE_MISMATCH */
 
 /* Subtract the second SingleGroupLine from the first, leaving the
    result in the first.
@@ -51,3 +51,4 @@ SingleGroupLine *b   i: second input data
 
 	return (status);
 }
+

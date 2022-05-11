@@ -1,8 +1,9 @@
 # include <stdio.h>
 # include <string.h>
+#include "hstcal.h"
 # include "hstio.h"
 # include <c_iraf.h>
-# include "acserr.h"
+# include "hstcalerr.h"
 # include "acs.h"	/* for message output */
 
 /* This routine prints the status value and message for HSTIO errors,

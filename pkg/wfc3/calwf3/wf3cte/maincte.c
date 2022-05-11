@@ -16,19 +16,22 @@ MLS 2015
 
 
 # include <c_iraf.h>		/* for c_irafinit */
+#include "hstcal_memory.h"
+#include "hstcal.h"
 # include "ximio.h"
 # include "hstio.h"
 
 # include "wf3.h"
-# include "wf3err.h"
+# include "hstcalerr.h"
 # include "wf3corr.h"		/* calibration switch names for WFC3ccd */
 # include "wf3version.h"
+# include "hstcalversion.h"
+# include "trlbuf.h"
 
 # ifdef _OPENMP
 #  include <omp.h>
 # endif
 
-static void FreeNames (char *, char *, char *, char *);
 void FreeRefFile (RefFileInfo *);
 void InitRefFile (RefFileInfo *);
 int WF3cte (char *, char *, CCD_Switch *, RefFileInfo *, int, int, int);
@@ -38,6 +41,18 @@ int CompareNumbers (int, int, char *);
 int LoadHdr (char *, Hdr *);
 int GetSwitch (Hdr *, char *, int *);
 void initCCDSwitches (CCD_Switch *);
+static void printSyntax(void)
+{
+    printf ("syntax:  WF3cte [--help] [-v] [-1] [--version] [--gitinfo] input output\n");
+}
+static void printHelp(void)
+{
+    printSyntax();
+}
+
+/* Standard string buffer for use in messages */
+char MsgText[MSG_BUFF_LENGTH]; // Global char auto initialized to '\0'
+struct TrlBuf trlbuf = { 0 };
 
 /* 
 
@@ -79,15 +94,22 @@ int main (int argc, char **argv) {
     c_irafinit (argc, argv);
     push_hstioerr(errchk);
 
+    PtrRegister ptrReg;
+    initPtrRegister(&ptrReg);
     /* Allocate space for file names. */
-    inlist = calloc (SZ_FNAME+1, sizeof (char));
-    outlist = calloc (SZ_FNAME+1, sizeof (char));
-    input = calloc (SZ_FNAME+1, sizeof (char));
-    output = calloc (SZ_FNAME+1, sizeof (char));
+    inlist = calloc (CHAR_FNAME_LENGTH+1, sizeof (char));
+    addPtr(&ptrReg, inlist, &free);
+    outlist = calloc (CHAR_FNAME_LENGTH+1, sizeof (char));
+    addPtr(&ptrReg, outlist, &free);
+    input = calloc (CHAR_FNAME_LENGTH+1, sizeof (char));
+    addPtr(&ptrReg, input, &free);
+    output = calloc (CHAR_FNAME_LENGTH+1, sizeof (char));
+    addPtr(&ptrReg, output, &free);
 
     if (inlist == NULL || outlist == NULL ||
         input == NULL || output == NULL) {
         printf ("Can't even begin; out of memory.\n");
+        freeOnExit(&ptrReg);
         exit (ERROR_RETURN);
     }
     inlist[0] = '\0';
@@ -98,6 +120,7 @@ int main (int argc, char **argv) {
     
     /*INITIALIZE REFERENCE FILE INFORMATION*/
     InitRefFile (&refnames);
+    addPtr(&ptrReg, &refnames, &FreeRefFile);
     
     /* Initial values. */
  	initCCDSwitches (&cte_sw);
@@ -105,6 +128,24 @@ int main (int argc, char **argv) {
     for (i = 1;  i < argc;  i++) {
 
         if (argv[i][0] == '-') {
+            if (!(strcmp(argv[i],"--version")))
+            {
+                printf("%s\n",WF3_CAL_VER);
+                freeOnExit(&ptrReg);
+                exit(0);
+            }
+            if (!(strcmp(argv[i],"--gitinfo")))
+            {
+                printGitInfo();
+                freeOnExit(&ptrReg);
+                exit(0);
+            }
+            if (!(strcmp(argv[i],"--help")))
+            {
+                printHelp();
+                freeOnExit(&ptrReg);
+                exit(0);
+            }
             for (j = 1;  argv[i][j] != '\0';  j++) {
                 if (argv[i][j] == 't') {
                     printtime = YES;
@@ -117,7 +158,8 @@ int main (int argc, char **argv) {
 					exit(0);
                 } else {
                     printf (MsgText, "Unrecognized option %s\n", argv[i]);
-                    FreeNames (inlist, outlist, input, output);
+                    printSyntax();
+                    freeOnExit(&ptrReg);
                     exit (ERROR_RETURN);
                 }
             }
@@ -130,18 +172,23 @@ int main (int argc, char **argv) {
         }
     }
     if (inlist[0] == '\0' || too_many) {
-        printf ("syntax:  WF3cte [-v] [-1] input output\n");
-        FreeNames (inlist, outlist, input, output);
+        printSyntax();
+        freeOnExit(&ptrReg);
         exit (ERROR_RETURN);
     }
     /* INITIALIZE THE STRUCTURE FOR MANAGING TRAILER FILE COMMENTS */
     InitTrlBuf ();
+    addPtr(&ptrReg, &trlbuf, &CloseTrlBuf);
+    trlGitInfo();
+
     /* COPY COMMAND-LINE VALUE FOR QUIET TO STRUCTURE */
     SetTrlQuietMode(quiet);
            
     /* EXPAND THE TEMPLATES. */
     i_imt = c_imtopen (inlist);
+    addPtr(&ptrReg, i_imt, &c_imtclose);
     o_imt = c_imtopen (outlist);
+    addPtr(&ptrReg, o_imt, &c_imtclose);
     n_in = c_imtlen (i_imt);
     n_out = c_imtlen (o_imt);
 
@@ -149,18 +196,17 @@ int main (int argc, char **argv) {
     if (CompareNumbers (n_in, n_out, "output"))
         status = 1;
     if (status) {
-        FreeNames (inlist, outlist, input, output);
-        CloseTrlBuf();
+        freeOnExit(&ptrReg);
         exit (ERROR_RETURN);
     }
 
     /* LOOP OVER THE LIST OF INPUT FILES. */
     for (n = 0;  n < n_in;  n++) {
 
-        k = c_imtgetim (i_imt, input, SZ_FNAME);
+        k = c_imtgetim (i_imt, input, CHAR_FNAME_LENGTH);
 
         if (n_out > 0)
-            k = c_imtgetim (o_imt, output, SZ_FNAME);
+            k = c_imtgetim (o_imt, output, CHAR_FNAME_LENGTH);
         else
             output[0] = '\0';
 
@@ -190,11 +236,12 @@ int main (int argc, char **argv) {
         if (cte_sw.biascorr == COMPLETE || cte_sw.blevcorr == COMPLETE || cte_sw.darkcorr == COMPLETE){
             sprintf(MsgText,"An uncalibrated, RAW file must be used as input to CTE corr, skipping %s", input);
             trlmessage(MsgText);
+            freeOnExit(&ptrReg);
             exit(ERROR_RETURN);
             
         } else if (cte_sw.pctecorr) {
 
-            if (MkName (input, "_raw", "_rac_tmp", "", output, SZ_FNAME)) {
+            if (MkName (input, "_raw", "_rac_tmp", "", output, CHAR_FNAME_LENGTH)) {
                 WhichError (status);
                 sprintf (MsgText, "Skipping %s, problem making output name", input);
                 trlmessage (MsgText);
@@ -211,25 +258,10 @@ int main (int argc, char **argv) {
     }
 
     /* Close lists of file names, and free name buffers. */
-    c_imtclose (i_imt);
-    c_imtclose (o_imt);
-    CloseTrlBuf();
-    FreeRefFile (&refnames);
-    FreeNames (inlist, outlist, input, output);
+    freeOnExit(&ptrReg);
 
     if (status)
         exit (ERROR_RETURN);
     else
         exit (0);
 }
-
-
-static void FreeNames (char *inlist, char *outlist, char *input, char *output) {
-    free (output);
-    free (input);
-    free (outlist);
-    free (inlist);
-}
-
-
-

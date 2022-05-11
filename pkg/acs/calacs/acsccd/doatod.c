@@ -2,11 +2,12 @@
 # include <stdlib.h>		/* for malloc */
 # include <math.h>		/* for fabs */
 
+#include "hstcal.h"
 # include "xtables.h"
 # include "hstio.h"
 # include "acs.h"
 # include "acsinfo.h"
-# include "acserr.h"
+# include "hstcalerr.h"
 # include "acsdq.h"		/* for SATPIXEL */
 
 typedef struct {

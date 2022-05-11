@@ -17,8 +17,8 @@ def build(bld):
             median.c   mkname.c   mkoutname.c   mkspt.c   mult1d.c
             multk1d.c   multk2d.c   omitstep.c   parseamps.c   parsedate.c
             prinfo.c   reffiles.c   rowpedigree.c   sameint.c   spline.c
-            streqic.c   sub1d.c   tabhistory.c   tabpedigree.c
-            timestamp.c   trim.c   trlbuf.c   ucalver.c   ufilename.c
+            streqic.c   sub1d.c   sub2d.c	tabhistory.c   tabpedigree.c
+            timestamp.c   trim.c   trim2d.c		ucalver.c   ufilename.c
             unbinline.c   whicherror.c  toelectrons.c
 
             ../acs2d/acs2d.c   ../acs2d/do2d.c   ../acs2d/dodark.c
@@ -32,10 +32,11 @@ def build(bld):
             ../acsccd/doccd.c    ../acsccd/findblev.c ../acsccd/dosink.c
             ../acsccd/findover.c ../acsccd/getacsflag.c
             ../acsccd/getccdsw.c ../acsccd/blev_funcs_postsm4.c
+            ../acsccd/dofwsat.c
 
             ../acscte/docte.c        ../acscte/acscte.c
             ../acscte/getcteflag.c   ../acscte/getctesw.c  ../acscte/dopcte.c
-            ../acscte/pcte_fixycte.c ../acscte/pcte_funcs.c
+            ../acscte/dopcte-gen2.c ../acscte/pcte_fixycte.c ../acscte/pcte_funcs.c
 
             ../acsrej/acsrej.c ../acsrej/acsrej_check.c
             ../acsrej/acsrej_do.c ../acsrej/acsrej_init.c
@@ -54,7 +55,7 @@ def build(bld):
             """,
         target = 'calacs',
         install_path = bld.env.INSTALL_LIB and '${PREFIX}/lib',
-        use = ['CFITSIO', 'OPENMP'],
+        use = ['hstcallib', 'CFITSIO', 'OPENMP', 'ctegen2'],
         includes = ['../include'],
         export_includes = ['../include'],
         )

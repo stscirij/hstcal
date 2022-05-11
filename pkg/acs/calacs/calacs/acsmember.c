@@ -3,10 +3,11 @@
 # include <stdlib.h>
 # include <string.h>
 
+#include "hstcal.h"
 # include "hstio.h"	/* defines HST I/O functions */
 # include "acs.h"	/* defines ACS data structures */
 # include "acsasn.h"	/* defines ACS Association data structures */
-# include "acserr.h"
+# include "hstcalerr.h"
 # include "calacs.h"	/* defines ACS observation data structures */
 
 /* GETASNMEMBER: Copy information from association table structure
@@ -24,11 +25,10 @@ ACSInfo *acs		o: exposure specific flags and info
 */
 	extern int status;
 	
-	char rootname[ACS_FNAME+1];
-	char outroot[ACS_CBUF+1];
+	char rootname[CHAR_FNAME_LENGTH+1];
 	char mtype[SZ_STRKWVAL+1];
     int mlen;
-	void FindAsnRoot (char *, char *);
+	void FindAsnRoot (const char *, char *);
     void UpperAll (char *, char *, int);
     
 	/* find out if the member we want exists... */	
@@ -40,10 +40,9 @@ ACSInfo *acs		o: exposure specific flags and info
 
 	/* Initialize local strings... */
 	rootname[0] = '\0';
-	outroot[0] = '\0';
     mtype[0] = '\0';
 
-	strcpy(outroot, asn->product[prodid].subprod[posid].name);
+    const char * outroot = asn->product[prodid].subprod[posid].name;
 	
 	/* Make sure we are only passing a rootname, and not a full filename.*/
 	FindAsnRoot (outroot, rootname);
@@ -89,16 +88,15 @@ AsnInfo *asn      	i: calibration flags and other info
 ACSInfo *acs		o: exposure specific flags and info
 */
 	extern int status;
-	char rootname[ACS_FNAME];
-	char outroot[ACS_FNAME];
-	void FindAsnRoot (char *, char *);
+	char rootname[CHAR_FNAME_LENGTH];
+	*rootname = '\0';
+	void FindAsnRoot (const char *, char *);
 	
-	strcpy(outroot, asn->filename);
+	const char * outroot = asn->filename;
 	
 	/* Make sure we are only passing a rootname, and not a full filename.*/
 	FindAsnRoot (outroot, rootname);
 	strcpy (acs->outroot, rootname);
-					
 	strcpy (acs->rootname, rootname);
 	
 	if (asn->debug) {

@@ -3,12 +3,13 @@
 # include   <stdlib.h>
 # include   <math.h>
 
+#include "hstcal.h"
 # include "hstio.h"
 
 # include   "wf3.h"
 # include   "wf3rej.h"
 # include   "rej.h"
-# include   "wf3err.h"
+# include   "hstcalerr.h"
 # include   "wf3info.h"
 
 /* local mask values */
@@ -147,7 +148,7 @@ Code Outline:
 				units of count rates. (PR 69969; Trac #814)
 */
 
-int rej_loop (IODescPtr ipsci[], IODescPtr ipdq[], char imgname[][SZ_FNAME+1],
+int rej_loop (IODescPtr ipsci[], IODescPtr ipdq[], char imgname[][CHAR_FNAME_LENGTH+1],
 	      int grp [], int nimgs, clpar *par, int niter, int dim_x,
 	      int dim_y, float sigma[], multiamp noise, multiamp gain, 
 	      float efac[], float skyval[], DataUnits bunit[],
@@ -343,7 +344,7 @@ int rej_loop (IODescPtr ipsci[], IODescPtr ipdq[], char imgname[][SZ_FNAME+1],
        back into the input DQ arrays at the end of processing, while dq
        will hold values to write to the output CRJ DQ extension */
     initShortData (&dq2);
-    allocShortData (&dq2, dim_x, dim_y);
+    allocShortData (&dq2, dim_x, dim_y, True);
     for (j = 0; j < dim_y; j++) {
         for (i = 0; i < dim_x; i++) {
             PDQSetPix(dq,i,j,crflag);

@@ -1,10 +1,11 @@
 # include <stdio.h>
+#include "hstcal.h"
 # include "hstio.h"
 
 # include "xtables.h"
 # include "wf3.h"
 # include "wf3info.h"
-# include "wf3err.h"
+# include "hstcalerr.h"
 
 # define FULL_FRAME_READOUT  1
 # define SUBARRAY_READOUT    2

@@ -1,5 +1,9 @@
+DISTINFO
+*.tar.*
 .lock-waf*
 .waf*
 bin.*
 build.*
 Makefile
+__pycache__
+.cache

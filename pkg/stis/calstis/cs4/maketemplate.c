@@ -6,7 +6,7 @@
 # include "hstio.h"	/* this is only used for writing debug image */
 # include "stis.h"
 # include "calstis4.h"
-# include "stiserr.h"
+# include "hstcalerr.h"
 
 # define TOLERANCE (1.e-6)      /* for inverting the dispersion relation */
 
@@ -230,7 +230,7 @@ static void debugimg (char *dbgfile, CmplxArray *z) {
 	int i, j;
 
 	initFloatHdrData (&x);
-	allocFloatHdrData (&x, z->nx, z->ny);
+	allocFloatHdrData (&x, z->nx, z->ny, True);
 
 	for (j = 0;  j < z->ny;  j++) {
 	    for (i = 0;  i < z->nx;  i++)

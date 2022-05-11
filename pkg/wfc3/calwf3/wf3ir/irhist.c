@@ -5,8 +5,8 @@
 # include "hstio.h"
 # include "wf3.h"
 # include "wf3info.h"
-# include "wf3err.h"
-# include "trl.h"
+# include "hstcalerr.h"
+# include "trlbuf.h"
 
 
 /* These routines check whether pedigree indicates that the calibration

@@ -1,9 +1,10 @@
 # include <stdlib.h>		/* calloc */
 # include <string.h>		/* strncmp */
 # include <math.h>		/* sqrt */
+#include "hstcal.h"
 # include "hstio.h"
 # include "wf3.h"		/* for message output */
-# include "wf3err.h"		/* SIZE_MISMATCH */
+# include "hstcalerr.h"		/* SIZE_MISMATCH */
 
 /* This routine takes an input data array, extracts a subset, bins it
    by averaging within rectangular bins, and assigns the values to an

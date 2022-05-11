@@ -1,12 +1,13 @@
 # include <stdio.h>
 # include <stdlib.h>
 # include <string.h>
+#include "hstcal.h"
 # include "hstio.h"
 # include <time.h>
 # include "acs.h"
 # include "acscorr.h"
 # include "calacs.h"
-# include "acserr.h"
+# include "hstcalerr.h"
 
 /* This routine gets info from the primary header of the science file,
    and it calls routines to get calibration switches and reference file
@@ -30,14 +31,12 @@ RefFileInfo *sciref  io: list of keyword,filename pairs for science file
 	Hdr phdr;		/* primary header */
 	int nextend;		/* number of FITS extensions in rawfile */
 
-    time_t date,date_limit;
-    char dateobs[ACS_CBUF],targname[ACS_LINE];
+    char targname[CHAR_LINE_LENGTH];
 
     int GetKeyStr (Hdr *, char *, int, char *, char *, int);
 	int GetKeyInt (Hdr *, char *, int, int, int *);
 	int GetFlags (CalSwitch *, Hdr *);
 	int SciFlags (ACSInfo *, CalSwitch *, Hdr *, RefFileInfo *);
-        int parseObsDateVal (char *dateobs, time_t *date);
 
 	/* Read primary header of rawfile into phdr. */
 	initHdr (&phdr);
@@ -73,19 +72,10 @@ RefFileInfo *sciref  io: list of keyword,filename pairs for science file
     */
 	acs->samebin = 1;	/* default */
 
-    /* Get and parse DATE-OBS into a floating point value*/
-    if (GetKeyStr (&phdr, "DATE-OBS", USE_DEFAULT, "", dateobs, ACS_CBUF))
-        	    return (status);
-    parseObsDateVal(dateobs, &date);
-    /* Parse date used to check whether ACS HRC/WFC data was
-       pre-SM4 or post-SM4 and turn into a float for comparison
-       with exposure's date-obs
-    */
-    parseObsDateVal("2009-01-01", &date_limit);
-    if (GetKeyStr (&phdr, "TARGNAME", USE_DEFAULT, "", targname, ACS_LINE))
+    if (GetKeyStr (&phdr, "TARGNAME", USE_DEFAULT, "", targname, CHAR_LINE_LENGTH))
         return (status);
-    if (strncmp(targname,"BIAS",4) == 0 && date > date_limit){
-        acs->newbias = 1;
+    if (strncmp(targname,"BIAS",4) == 0){
+        acs->readnoise_only = 1;
     }
 
 	/* Get calibration switches, and check that reference files exist. */

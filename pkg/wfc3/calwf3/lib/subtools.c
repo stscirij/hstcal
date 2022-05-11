@@ -1,8 +1,9 @@
 # include <string.h>
+#include "hstcal.h"
 # include "hstio.h"
 # include "wf3.h"
 # include "wf3info.h"
-# include "wf3err.h"
+# include "hstcalerr.h"
 
 /* These are subroutines which can be used to go between subarray
    and full-frame chip images

@@ -1,3 +1,6 @@
+#ifndef INCL_ACSREJ_H
+#define INCL_ACSREJ_H
+
 /* The header file acs.h must be called prior to calling this
     file, in order to define the macros used here.
 */
@@ -16,7 +19,7 @@
 
 /*  define the parameter structure */
 typedef struct {
-    char    tbname[ACS_FNAME];      /* Name of CCDTAB to be read */
+    char    tbname[CHAR_FNAME_LENGTH];      /* Name of CCDTAB to be read */
     float   radius;
     float   thresh;
     int     nexpnames;
@@ -34,5 +37,7 @@ typedef struct {
     int     shadcorr;
     int     printtime;
     int     verbose;
-    int     newbias;
+    int     readnoise_only;
 } clpar;
+
+#endif /* INCL_ACSREJ_H */

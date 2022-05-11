@@ -2,6 +2,7 @@
 # include <stdlib.h>
 # include <string.h>
 # include <fitsio.h>
+#include "hstcal.h"
 # include "ctables.h"
 
 /* Image file name template descriptor.
@@ -142,17 +143,22 @@ argument:
 IRAFPointer imt         i: file name template descriptor
 */
 
-        ImtDescr *imt_descr;
-        int i;
+        if (!imt)
+            return;
 
-        if (imt != NULL) {
-            imt_descr = (ImtDescr *)imt;
+        ImtDescr * imt_descr = (ImtDescr *)imt;
+        if (imt_descr->pattern)
             free (imt_descr->pattern);
-            for (i = 0;  i < imt_descr->nfiles;  i++)
+        {unsigned i;
+        for (i = 0;  i < imt_descr->nfiles;  i++)
+        {
+            if (imt_descr->files[i])
                 free (imt_descr->files[i]);
+        }}
+        if (imt_descr->files)
             free (imt_descr->files);
+        if (imt_descr)
             free (imt_descr);
-        }
 }
 
 static void findFiles (ImtDescr *imt_descr) {
@@ -208,7 +214,7 @@ static void findFiles (ImtDescr *imt_descr) {
         }
         imt_descr->alloc_nfiles = nfiles;
 
-        filename = (char *)calloc (SZ_FNAME+1, sizeof(char));
+        filename = (char *)calloc (CHAR_FNAME_LENGTH+1, sizeof(char));
 
         imt_descr->files = (char **)calloc (imt_descr->alloc_nfiles,
                                 sizeof(char *));
@@ -261,7 +267,7 @@ static void findFiles (ImtDescr *imt_descr) {
             if (imt_descr->pattern[i] == '\0')
                 done = 1;
 
-            fullname = (char *)calloc (SZ_FNAME+1, sizeof(char));
+            fullname = (char *)calloc (CHAR_FNAME_LENGTH+1, sizeof(char));
             status = c_vfn2osfn (filename, fullname);
             if (status != 0) {
                 setError (status, "c_imtopen:  error from c_vfn2osfn");
@@ -271,7 +277,7 @@ static void findFiles (ImtDescr *imt_descr) {
 
             /* if a file name was specified, add it to the list */
             if (fullname[0] != '\0' && fullname[0] != ' ') {
-                imt_descr->files[n] = (char *)calloc (SZ_FNAME+1, sizeof(char));
+                imt_descr->files[n] = (char *)calloc (CHAR_FNAME_LENGTH+1, sizeof(char));
                 strcpy (imt_descr->files[n], fullname);
                 n++;
                 imt_descr->nfiles = n;

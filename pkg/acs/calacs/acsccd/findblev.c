@@ -1,8 +1,9 @@
 # include <stdio.h>
 # include <stdlib.h>		/* for calloc and qsort */
 
+#include "hstcal.h"
 # include "hstio.h"
-# include "acserr.h"	/* for NO_GOOD_DATA */
+# include "hstcalerr.h"	/* for NO_GOOD_DATA */
 # include "acsdq.h"		/* for GOODPIXEL */
 # include "acs.h"        /* for MsgText */
 

@@ -1,8 +1,8 @@
 # include <stdio.h>
 
 # include "hstio.h"
-# include "trl.h"		/* For trlwarn */
-# include "wf3err.h"
+# include "trlbuf.h"		/* For trlwarn */
+# include "hstcalerr.h"
 # include "wf3dq.h"
 
 /* This routine computes the minimum, mean, and maximum of the science

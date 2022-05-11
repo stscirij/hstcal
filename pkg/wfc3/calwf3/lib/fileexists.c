@@ -1,4 +1,5 @@
 # include <stdio.h>
+#include "hstcal.h"
 # include "hstio.h"	/* for ckNewFile */
 # include "wf3.h"	/* for message output */
 
@@ -78,7 +79,7 @@ int TrlExists (char *trlname) {
 		/* New Trailer File */
 		sprintf (MsgText, "Creating new trailer file `%s'.", trlname);
 		trlmessage (MsgText);
-		fclose (fp);	
+		(void)fcloseWithStatus(&fp);
 		return (exists);
 	    }
 		
@@ -90,7 +91,7 @@ int TrlExists (char *trlname) {
 
 	    /* This flag is used to set OverwriteMode in TRL files */
 	    exists = EXISTS_YES;
-	    fclose (fp);
+	    (void)fcloseWithStatus(&fp);
 	    return (exists);		
 	}
 }

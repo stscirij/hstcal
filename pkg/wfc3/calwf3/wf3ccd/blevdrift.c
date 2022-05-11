@@ -13,11 +13,12 @@
 
 # include <stdio.h>
 # include <stdlib.h>
+#include "hstcal.h"
 # include "hstio.h"
 # include <math.h>
 # include "wf3.h"
 # include "wf3info.h"
-# include "wf3err.h"
+# include "hstcalerr.h"
 # include "wf3dq.h"		/* for GOODPIXEL */
 
 # define NELEM_SUMS  5		/* size of sums array */

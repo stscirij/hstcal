@@ -1,10 +1,11 @@
 # include <stdio.h>
 # include <string.h>
 
+#include "hstcal.h"
 # include "hstio.h"
 # include "wf3.h"
 # include "wf3info.h"
-# include "wf3err.h"
+# include "hstcalerr.h"
 # include "cte.h"
 
 

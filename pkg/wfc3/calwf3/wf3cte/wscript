@@ -4,8 +4,9 @@ def build(bld):
     t = bld.program(
         source = 'maincte.c',
         target = 'wf3cte.e',
-        use = ['calwf3', 'imphttab'] + bld.env.LOCAL_LIBS,
+        use = ['hstcallib', 'calwf3', 'imphttab'] + bld.env.LOCAL_LIBS,
         lib = bld.env.EXTERNAL_LIBS,
         libpath = bld.env.LIBPATH,
+        rpath=bld.env.LIBPATH_CFITSIO,
         install_path = '${PREFIX}/bin'
         )

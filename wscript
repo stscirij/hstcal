@@ -1,6 +1,6 @@
 # vim: set syntax=python:
 
-import os, platform, shutil, sys
+import os, platform, shutil, sys, subprocess
 
 from waflib import Configure
 from waflib import Errors
@@ -11,26 +11,36 @@ from waflib import Task
 from waflib import Utils
 from waflib import TaskGen
 
-APPNAME = 'hstcal'
-VERSION = '0.1.1'
-
 top = '.'
 out = 'build.' + platform.platform()
+out_include_dir = os.path.abspath(os.path.join(out, 'include'))
+
+APPNAME = "hstcal"
+VERSION = "UNKNOWN"
+BRANCH = "UNKNOWN"
+COMMIT = "UNKNOWN"
+
+# DISTINFO controls distribution archive versioning
+DISTINFO = os.path.abspath(os.path.join(top, "DISTINFO"))
+DISTINFO_KEYS = [
+    "APPNAME",
+    "VERSION",
+    "BRANCH",
+    "COMMIT",
+]
 
 # A list of subdirectories to recurse into
 SUBDIRS = [
-    'cfitsio', # cfitsio needs to go first
     'applib',
     'cvos',
     'hstio',
     'hstio/test',
     'include',
+    'lib',
+    'ctegen2',
     'pkg',
     'tables',
     ]
-
-# Have 'waf dist' create tar.gz files, rather than tar.bz2 files
-Scripting.g_gz = 'gz'
 
 # Have gcc supersede clang
 from waflib.Tools.compiler_c import c_compiler
@@ -49,30 +59,212 @@ def options(opt):
     opt.load('compiler_fc')
 
     opt.add_option(
-        '--disable-openmp', action='store_true',
+        '--disable-openmp', action='store_true', default=False,
         help="Disable OpenMP")
 
     opt.add_option(
-        '--debug', action='store_true',
+        '--debug', action='store_true', default=False,
         help="Create a debug build")
 
-    opt.recurse('cfitsio')
+    opt.add_option(
+        '--release-with-symbols', dest='releaseWithSymbols', action='store_true', default=False,
+        help='Create a Release build with debug symbols, i.e. with "-g"')
+
+    opt.add_option(
+        '--O3', dest='optO3', action='store_true', default=False,
+        help='Create a Release build with full optimization, i.e. with "-O3". \033[91m\033[1mWARNING! This option may produce unvalidated results!\033[0m')
+
+    opt.add_option(
+        '--with-cfitsio',
+        help='Path to CFITSIO installation directory')
+
 
 def _setup_openmp(conf):
-    conf.start_msg('Checking for OpenMP')
+    """
+    Detects openmp flags and sets the OPENMP ``CFLAGS``/``LINKFLAGS``
+    """
+    msg = 'Checking for OpenMP:'
 
     if conf.options.disable_openmp:
-        conf.end_msg('OpenMP disabled.', 'YELLOW')
+        conf.msg(msg, 'disabled', color='YELLOW')
         return
 
-    try:
-        conf.check_cc(
-            header_name="omp.h", lib="gomp", cflags="-fopenmp",
-            uselib_store="OPENMP")
-    except Errors.ConfigurationError:
-        conf.end_msg("OpenMP not found.", 'YELLOW')
+    for x in ('-fopenmp','-openmp','-mp','-xopenmp','-omp','-qsmp=omp'):
+        try:
+            conf.check_cc(
+                msg = ' '.join([msg, x]),
+                fragment = '''#include <omp.h>\nint main() { return omp_get_num_threads(); }''',
+                errmsg = 'no',
+                cflags = x,
+                linkflags = x,
+                uselib_store = 'OPENMP'
+            )
+
+            # intel
+            if x == '-openmp' and conf.env.CC_NAME == 'icc':
+                conf.env.append_value('LDFLAGS', '-lpthread')
+
+        except conf.errors.ConfigurationError:
+            continue
+        else:
+            break
+
+
+def _ok_color(var, val):
+    if var == val:
+        return "GREEN"
     else:
-        conf.end_msg("OpenMP found.", 'GREEN')
+        return "YELLOW"
+
+def _warn_color(var, val):
+    if var == val:
+        return "YELLOW"
+    else:
+        return "GREEN"
+
+def _err_color(var, val):
+    if var == val:
+        return "RED"
+    else:
+        return "GREEN"
+
+def call(cmd):
+    try:
+        results = subprocess.run(cmd, shell=True, check=False, universal_newlines=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        if not results.returncode:
+            return results.stdout.rstrip()
+    except AttributeError:
+        try:
+            results = subprocess.check_output(cmd, shell=True, universal_newlines=True, stderr=subprocess.PIPE)
+            return str(results).rstrip()
+        except subprocess.CalledProcessError:
+            return None
+    except:
+        return None
+
+    return None
+
+
+def _gen_distinfo(ctx):
+    """Generates a DISTINFO file
+    ctx.git_data: [["key", "value"], ["key", "value"], ...]
+    """
+
+    # Generate DISTINFO file UNLESS we are building from an archive
+    if not os.path.exists('.git') and os.path.exists(DISTINFO):
+        print("Building from distribution archive")
+        return
+
+    # Remove previous edition of the file
+    if os.path.exists(DISTINFO):
+        os.unlink(DISTINFO)
+
+    # Write data pairs to DISTINFO file
+    print("Generating DISTINFO file")
+    with open(DISTINFO, 'w+') as fp:
+        for key_dist in DISTINFO_KEYS:
+            for name, value in ctx.git_data:
+                if name == key_dist:
+                    fp.write("{}:{}\n".format(name, value))
+
+
+def _get_distinfo():
+    """Extract data from the DISTINFO file
+    """
+    global APPNAME
+    global VERSION
+    global BRANCH
+    global COMMIT
+
+    # Die silently when there's nothing to do
+    if not os.path.exists(DISTINFO):
+        return
+
+    with open(DISTINFO, 'r') as fp:
+        for record in fp:
+            record = record.strip()
+            if not record:
+                continue
+
+            name, value = record.split(":", 1)
+            for key_dist in DISTINFO_KEYS:
+                if name == key_dist:
+                    if name == "APPNAME":
+                        APPNAME = value
+                    if name == "VERSION":
+                        VERSION = value
+                    if name == "BRANCH":
+                        BRANCH = value
+                    if name == "COMMIT":
+                        COMMIT = value
+
+
+def _get_git_details(ctx):
+    global APPNAME
+    global VERSION
+    global BRANCH
+    global COMMIT
+
+    # Handle building from a archive
+    if not os.path.exists(".git") and os.path.exists(DISTINFO):
+        print("Using DISTINFO file")
+        _get_distinfo()
+        _gen_version_header(ctx)
+        return
+
+    tmp = call('git describe --dirty --abbrev=7')
+    if tmp:
+        VERSION = tmp
+
+    tmp = call('git rev-parse HEAD')
+    if tmp:
+        COMMIT = tmp
+
+    tmp = call('git rev-parse --abbrev-ref HEAD')
+    if tmp:
+        BRANCH = tmp
+
+    _gen_version_header(ctx)
+    _gen_distinfo(ctx)
+
+
+def _gen_version_header(ctx):
+    """Generate a C header to provide versioning data to hstcal's programs
+    """
+    filename = os.path.join(out_include_dir, 'version.h')
+    label = "HEADER_" + os.path.basename(filename).replace(".", "_").upper()
+    ctx.git_data = [
+        ["APPNAME", APPNAME],
+        ["VERSION", VERSION],
+        ["BRANCH", BRANCH],
+        ["COMMIT", COMMIT],
+    ]
+
+    os.makedirs(out_include_dir, exist_ok=True)
+    with open(filename, 'w+') as hdr:
+        hdr.write("#ifndef {}\n".format(label))
+        hdr.write("#define {}\n".format(label))
+        for key, value in ctx.git_data:
+            hdr.write("#define {} \"{}\"\n".format(key, value))
+        hdr.write("#endif  /* {} */\n".format(label))
+
+
+def _use_git_details(ctx):
+    _get_git_details(ctx)
+
+    # Include generated header(s)
+    ctx.env.append_value('CFLAGS', '-I{}'.format(out_include_dir))
+
+    # Inform user
+    ctx.start_msg("Building app")
+    ctx.end_msg(APPNAME, _warn_color(APPNAME, "UNKNOWN"))
+    ctx.start_msg("Version")
+    ctx.end_msg(VERSION, _warn_color(VERSION, "UNKNOWN"))
+    ctx.start_msg("git HEAD commit")
+    ctx.end_msg(COMMIT, _warn_color(COMMIT, "UNKNOWN"))
+    ctx.start_msg("git branch")
+    ctx.end_msg(BRANCH, _warn_color(BRANCH, "UNKNOWN"))
+
 
 def _check_mac_osx_version(floor_version):
     '''
@@ -99,6 +291,10 @@ def _check_mac_osx_version(floor_version):
         >>> _determine_mac_osx_floor(0x0A0C01)
         False
 
+        # Failed to execute `sw_vers -ProductVersion`
+        >>> _determine_mac_osx_floor(0x0A0500)
+        None
+
     Encoding:
         OS Version      Encoded Version
         -----------     ---------------
@@ -114,7 +310,11 @@ def _check_mac_osx_version(floor_version):
     '''
 
     assert isinstance(floor_version, int)
-    s = platform.popen("/usr/bin/sw_vers -productVersion").read()
+    s = call("/usr/bin/sw_vers -productVersion")
+
+    # Shell call failed
+    if s is None:
+        return None
 
     # Extract the integer values between the '.'s
     osx_version_major, osx_version_minor, osx_version_patch = tuple(int(x) for x in s.strip().split('.'))
@@ -136,8 +336,14 @@ def _determine_mac_osx_fortran_flags(conf):
     if platform.system() == 'Darwin' :
         conf.start_msg('Checking Mac OS-X version')
 
-        if _check_mac_osx_version(0x0A0500):
+        acceptable = _check_mac_osx_version(0x0A0500)
+        if acceptable:
             conf.end_msg('done', 'GREEN')
+        elif acceptable is None:
+            conf.end_msg(
+                "Failed to detect operating system version",
+                'RED')
+            exit(1)
         else:
             conf.end_msg(
                 "Unsupported OS X version detected (<10.5.0)",
@@ -154,6 +360,22 @@ def _determine_sizeof_int(conf):
         quote=False,
         execute=True,
         msg='Checking for sizeof(int)')
+
+
+def _use_cfitsio(conf):
+    conf.load('compiler_c')
+
+    if conf.options.with_cfitsio:
+        # Manual override of CFITSIO root path via --with-cfitsio
+        base = os.path.abspath(conf.options.with_cfitsio)
+        conf.env.INCLUDES_CFITSIO = os.path.join(base, 'include')
+        conf.env.LIBPATH_CFITSIO = os.path.join(base, 'lib')
+        conf.env.LIB_CFITSIO = ['cfitsio', 'pthread', 'curl']
+        conf.env.DEFINES += ['HAVE_CFITSIO=1']
+    else:
+        # Let pkg-config figure it out (default behavior)
+        conf.check_cfg(package='cfitsio', args='--cflags --libs', uselib_store='CFITSIO')
+
 
 def configure(conf):
     # NOTE: All of the variables in conf.env are defined for use by
@@ -172,12 +394,17 @@ def configure(conf):
                     Options.options.__dict__[key] = val
         fd.close()
 
+    _use_git_details(conf)
+
     # Load C compiler support
     conf.load('compiler_c')
 
     # Check for the existence of a Fortran compiler
     conf.load('compiler_fc')
     conf.check_fortran()
+
+    # Check for cfitsio
+    _use_cfitsio(conf)
 
     # Set the location of the hstcal include directory
     conf.env.INCLUDES = [os.path.abspath('include')] # the hstcal include directory
@@ -190,8 +417,11 @@ def configure(conf):
     # A list of external libraries that are typically linked with the
     # executables
     conf.env.EXTERNAL_LIBS = ['m']
+
     if sys.platform.startswith('sunos'):
         conf.env.EXTERNAL_LIBS += ['socket', 'nsl']
+    elif sys.platform.startswith('linux'):
+        conf.env.EXTERNAL_LIBS += ['rt']
 
     # A list of paths in which to search for external libraries
     conf.env.LIBPATH = []
@@ -200,7 +430,10 @@ def configure(conf):
 
     _setup_openmp(conf)
 
-    _determine_sizeof_int(conf)
+    #_determine_sizeof_int(conf)
+
+    if conf.check_cc(cflags='-std=gnu99'):
+        conf.env.append_value('CFLAGS', '-std=gnu99')
 
     # check whether the compiler supports -02 and add it to CFLAGS if it does
     if conf.options.debug:
@@ -211,12 +444,29 @@ def configure(conf):
         if conf.check_cc(cflags='-Wall'):
             conf.env.append_value('CFLAGS','-Wall')
     else:
-        if conf.check_cc(cflags='-O2'):
-            conf.env.append_value('CFLAGS','-O2')
+        if not conf.options.optO3:
+            if conf.check_cc(cflags='-O2'):
+                conf.env.append_value('CFLAGS','-O2')
+        else:
+            msg = """\033[91m\033[1mWARNING!
+The configure option \'--O3\' has been specified.
+Use of this option is untested and may result in unvalidated results.
+Press any key to continue or Ctrl+c to abort...\033[0m"""
+            print(msg)
+            try:
+                raw_input()
+            except NameError:
+                input()
+            if conf.check_cc(cflags='-O3'):
+                conf.env.append_value('CFLAGS','-O3')
         if conf.check_cc(cflags='-Wall'):
             conf.env.append_value('CFLAGS','-Wall')
         if conf.check_cc(cflags='-fstack-protector-all'):
             conf.env.append_value('CFLAGS','-fstack-protector-all')
+
+    if conf.options.releaseWithSymbols and not conf.options.debug:
+        if conf.check_cc(cflags='-g'):
+            conf.env.append_value('CFLAGS', '-g')
 
     conf.start_msg('C compiler flags (CFLAGS)')
     conf.end_msg(' '.join(conf.env['CFLAGS']) or None)
@@ -227,9 +477,42 @@ def configure(conf):
     conf.start_msg('Linker flags (LDFLAGS)')
     conf.end_msg(' '.join(conf.env['LDFLAGS']) or None)
 
-    # The configuration related to cfitsio is stored in
-    # cfitsio/wscript
-    conf.recurse('cfitsio')
+
+def _dist_setup(ctx):
+    ctx.algo = 'tar.gz'
+
+    # Manually include project files in the archive
+    ctx.files = ctx.path.ant_glob('**/*', excl=[
+        '.git*',
+        '.waf*',
+        '.lock-*',
+        'Makefile',
+        '__pycache__',
+        '**/__pycache__',
+        '.cache',
+        '**/.cache',
+        out,
+        'bin.*',
+        '*.tar.*',
+        '*.zip'])
+
+    # Update version information
+    _get_git_details(ctx)
+
+
+def dist(ctx):
+    _dist_setup(ctx)
+
+    # call 'waf dist' directly to generate an archive
+    Scripting.dist(ctx)
+
+
+def distcheck(ctx):
+    _dist_setup(ctx)
+
+    # call 'waf distcheck' directly to smoke test building from an archive
+    Scripting.distcheck(ctx)
+
 
 def build(bld):
     bld(name='lib', always=True)
@@ -305,6 +588,13 @@ def test(ctx):
         if library.endswith('test'):
             if os.system('nosetests %s' % library):
                 raise Exception("Tests failed")
+
+def distclean(ctx):
+    # call 'waf clean'
+    Scripting.run_command('clean')
+
+    # call 'waf distclean'
+    Scripting.distclean(ctx)
 
 # This is a little recipe from the waf docs to produce abstract
 # targets that define what to build and install.

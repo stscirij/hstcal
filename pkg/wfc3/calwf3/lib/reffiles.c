@@ -11,7 +11,7 @@
 # include <string.h>
 
 # include "wf3.h"
-# include "wf3err.h"
+# include "hstcalerr.h"
 
 /* These routines are for managing a list of keyword & value pairs
    for reference file names.
@@ -130,11 +130,13 @@ void FreeRefFile (RefFileInfo *ref) {
 /* arguments:
 RefFileInfo *ref   io: the list of reference info
 */
+    if (!ref)
+        return;
 
-	RefFileInfo *current, *next;
+    RefFileInfo *current, *next;
 
 	current = ref->next;		/* don't free the first record */
-	while (current != NULL) {
+	while (current) {
 	    next = current->next;
 	    free (current);
 	    current = next;

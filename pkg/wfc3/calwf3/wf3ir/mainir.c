@@ -5,19 +5,36 @@
 # include <time.h>
 # include <string.h>
 
-int status = 0;			/* zero is OK */
+extern int status;
 
+#include "hstcal_memory.h"
+#include "hstcal.h"
 # include "c_iraf.h"		/* for c_irafinit */
 # include "ximio.h"
 # include "hstio.h"
 
 # include "wf3.h"
 # include "wf3info.h"
-# include "wf3err.h"
+# include "hstcalerr.h"
 # include "wf3corr.h"        /* calibration switch names for wf3ir */
 # include "wf3version.h"
+# include "hstcalversion.h"
+# include "trlbuf.h"
 
-static void FreeNames (char *, char *, char *, char *);
+static void printSyntax(void)
+{
+    printf ("syntax:  wf3ir [--help] [-t] [-v] [-q] [-r] [--version] [--gitinfo] input output\n");
+    printf ("  command-line switches:\n");
+    printf ("       -bseq -pede\n");
+}
+static void printHelp(void)
+{
+    printSyntax();
+}
+
+/* Standard string buffer for use in messages */
+char MsgText[MSG_BUFF_LENGTH]; // Global char auto initialized to '\0'
+struct TrlBuf trlbuf = { 0 };
 
 /* This is the main module for WF3IR.  It gets the input and output
    file names, calibration switches, and flags, and then calls WF3ir.
@@ -70,6 +87,7 @@ int main (int argc, char **argv) {
 	int CompareNumbers (int, int, char *);
 
 /*===========================================================================*/
+    status = 0;
 
 	/* Initialize IRAF interface environment */
 	c_irafinit (argc, argv);
@@ -77,15 +95,22 @@ int main (int argc, char **argv) {
 	/* Post HSTIO error handler */
 	push_hstioerr (errchk);
 
+    PtrRegister ptrReg;
+    initPtrRegister(&ptrReg);
 	/* Allocate space for file names. */
-	inlist  = calloc (SZ_LINE+1, sizeof (char));
-	outlist = calloc (SZ_LINE+1, sizeof (char));
-	input   = calloc (SZ_LINE+1, sizeof (char));
-	output  = calloc (SZ_LINE+1, sizeof (char));
+	inlist  = calloc (CHAR_LINE_LENGTH+1, sizeof (char));
+    addPtr(&ptrReg, inlist, &free);
+	outlist = calloc (CHAR_LINE_LENGTH+1, sizeof (char));
+    addPtr(&ptrReg, outlist, &free);
+	input   = calloc (CHAR_LINE_LENGTH+1, sizeof (char));
+    addPtr(&ptrReg, input, &free);
+	output  = calloc (CHAR_LINE_LENGTH+1, sizeof (char));
+    addPtr(&ptrReg, output, &free);
 
 	if (inlist == NULL || outlist == NULL ||
 	    input == NULL || output == NULL) {
 	    printf ("Can't even begin; out of memory.\n");
+	    freeOnExit(&ptrReg);
 	    exit (ERROR_RETURN);
 	}
 	inlist[0]  = '\0';
@@ -94,6 +119,7 @@ int main (int argc, char **argv) {
 	output[0]  = '\0';
 	/* Initialize the lists of reference file keywords and names. */
 	InitRefFile (&refnames);
+    addPtr(&ptrReg, &refnames, &FreeRefFile);
 
 	/* Initial values. */
 	initIRSwitches (&ir_sw);
@@ -103,9 +129,21 @@ int main (int argc, char **argv) {
 
 	    if (!(strcmp(argv[i],"--version"))) {
 		printf("%s\n",WF3_CAL_VER_NUM);
+		freeOnExit(&ptrReg);
 		exit(0);
 	    }
-
+        if (!(strcmp(argv[i],"--gitinfo")))
+        {
+            printGitInfo();
+            freeOnExit(&ptrReg);
+            exit(0);
+        }
+        if (!(strcmp(argv[i],"--help")))
+        {
+            printHelp();
+            freeOnExit(&ptrReg);
+            exit(0);
+        }
 	    if (argv[i][0] == '-') {
 		for (j = 1;  argv[i][j] != '\0';  j++) {
 		    if (argv[i][j] == 't') {
@@ -116,10 +154,12 @@ int main (int argc, char **argv) {
 			quiet = YES;
             } else if (argv[i][j] == 'r'){
                 printf ("Current version: %s\n", WF3_CAL_VER);
+                freeOnExit(&ptrReg);
                 exit(0);
 		    } else {
 			printf (MsgText, "Unrecognized option %s\n", argv[i]);
-			FreeNames (inlist, outlist, input, output);
+			printSyntax();
+			freeOnExit(&ptrReg);
 			exit (1);
 		    }
 		}
@@ -133,16 +173,16 @@ int main (int argc, char **argv) {
 	}
     
 	if (inlist[0] == '\0' || too_many) {
-	    printf ("syntax:  wf3ir [-t] [-v] [-q] [-r] input output\n");
-	    printf ("  command-line switches:\n");
-	    printf ("       -bseq -pede\n");
-	    FreeNames (inlist, outlist, input, output);
+	    printSyntax();
+	    freeOnExit(&ptrReg);
 	    exit (ERROR_RETURN);
 	}
 
 	/* Initialize the structure for managing trailer file comments */
 	InitTrlBuf ();
-	
+	addPtr(&ptrReg, &trlbuf, &CloseTrlBuf);
+    trlGitInfo();
+
 	/* Copy command-line value for QUIET to structure */
 	SetTrlQuietMode(quiet);
 
@@ -163,7 +203,9 @@ int main (int argc, char **argv) {
 
 	/* Expand the templates. */
 	i_imt = c_imtopen (inlist);
+    addPtr(&ptrReg, i_imt, &c_imtclose);
 	o_imt = c_imtopen (outlist);
+    addPtr(&ptrReg, o_imt, &c_imtclose);
 	n_in  = c_imtlen (i_imt);
 	n_out = c_imtlen (o_imt);
 
@@ -171,22 +213,21 @@ int main (int argc, char **argv) {
 	if (CompareNumbers (n_in, n_out, "output"))
 	    status = 1;
 	if (status) {
-	    FreeNames (inlist, outlist, input, output);
-	    CloseTrlBuf();
+	    freeOnExit(&ptrReg);
 	    exit (ERROR_RETURN);
 	}
 
 	/* Loop over the list of input files. */
 	for (n = 0;  n < n_in;  n++) {
 
-	    i = c_imtgetim (i_imt, input, SZ_LINE);
+	    i = c_imtgetim (i_imt, input, CHAR_LINE_LENGTH);
 		
 	    if (n_out > 0)
-		i = c_imtgetim (o_imt, output, SZ_LINE);
+		i = c_imtgetim (o_imt, output, CHAR_LINE_LENGTH);
 	    else {
 		    output[0] = '\0';
 
-	        if (MkName (input, isuffix, osuffix, "", output, SZ_LINE)) {
+	        if (MkName (input, isuffix, osuffix, "", output, CHAR_LINE_LENGTH)) {
 		        WhichError (status);
 		        sprintf (MsgText, "Skipping %s", input);
 		        trlmessage (MsgText);
@@ -203,24 +244,10 @@ int main (int argc, char **argv) {
 	    }
 	}
 
-	/* Close lists of file names, and free name buffers. */
-	c_imtclose (i_imt);
-	c_imtclose (o_imt);
-	CloseTrlBuf();
-	FreeRefFile (&refnames);
-	FreeNames (inlist, outlist, input, output);
+    freeOnExit(&ptrReg);
 
 	if (status)
 	    exit (ERROR_RETURN);
 	else
 	    exit (0);
-}
-
-
-static void FreeNames (char *inlist, char *outlist, char *input, char *output) {
-
-	free (output);
-	free (input);
-	free (outlist);
-	free (inlist);
 }

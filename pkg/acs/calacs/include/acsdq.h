@@ -1,3 +1,6 @@
+#ifndef INCL_ACSDQ_H
+#define INCL_ACSDQ_H
+
 /* Data quality flags for CALACS. */
 
 # define GOODPIXEL         0    /* OK */
@@ -9,7 +12,7 @@
 # define LARGEBLEM        32    /* large blemish */
 /* # define TBD           64    */
 # define OVERSCAN        128    /* can be used for finding bias level */
-# define SATPIXEL        256    /* full-well or a-to-d saturated pixel */
+# define SATPIXEL        256    /* full-well saturated pixel */
 # define CALIBDEFECT     512    /* bad pixel in reference file */
 # define SMALLBLEM      1024    /* small blemish */
 # define ATODSAT        2048    /* a-to-d saturated pixel */
@@ -17,3 +20,5 @@
 # define DATAREJECT     8192    /* rejected during image combination */
 /* # define TBD        16384    */
 /* # define TBD        32768    */
+
+#endif /* INCL_ACSDQ_H */

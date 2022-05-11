@@ -2,11 +2,12 @@
 # include <stdlib.h>	/* calloc */
 # include <string.h>
 
+#include "hstcal.h"
 # include "hstio.h"
 
 # include "wf3.h"
 # include "wf3info.h"
-# include "wf3err.h"
+# include "hstcalerr.h"
 
 /* 
 	This function builds the PHOTMODE string for the image header.
@@ -36,6 +37,8 @@
 	Changed UVIS channel to use UVIS1 and UVIS2 for each chip and to
 	use new "cal" keyword for UVIS channel. Removed use of DN keyword
 	for IR exposures because they're now in units of electrons.
+   M.De La Pena, 2020 Feb 28:
+    Added MJD in order to enable a time-dependent photometric correction.
 */
 
 int PhotMode (WF3Info *wf32d, Hdr *hdr) {
@@ -52,7 +55,7 @@ Hdr *hdr	io: image header to be modified
 
 	int PutKeyStr (Hdr *, char *, char *, char *);
 
-	photstr = calloc (SZ_LINE+1, sizeof (char));
+	photstr = calloc (CHAR_LINE_LENGTH+1, sizeof (char));
 	scratch = calloc (SZ_FITS_REC+1, sizeof (char));
 	if (photstr == NULL || scratch == NULL)
 	    return (status = OUT_OF_MEMORY);
@@ -75,9 +78,10 @@ Hdr *hdr	io: image header to be modified
 	    strcat (photstr, wf32d->filter);
 	}
 
-	/* Add the CAL keyword for UVIS exposures */
+    /* Add 'MJD#' keyword to PHOTMODE string for UVIS detector only */
 	if (wf32d->detector == CCD_DETECTOR)
-	    strcat (photstr, " CAL");
+        sprintf (scratch, " MJD#%0.4f", wf32d->expstart);
+        strcat (photstr, scratch);
 
 	if (wf32d->verbose) {
 	    sprintf (MsgText, "Keyword PHOTMODE built as: %s", photstr);

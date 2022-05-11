@@ -1,3 +1,6 @@
+#ifndef INCL_WF3REJ_H
+#define INCL_WF3REJ_H
+
 /* The header file wf3.h must be called prior to calling this
     file, in order to define the macros used here.
 */
@@ -16,7 +19,7 @@
 
 /*  define the parameter structure */
 typedef struct {
-    char    tbname[SZ_FNAME+1];      /* Name of CCDTAB to be read */
+    char    tbname[CHAR_FNAME_LENGTH+1];      /* Name of CCDTAB to be read */
     float   radius;
     float   thresh;
     int     nexpnames;
@@ -35,3 +38,5 @@ typedef struct {
     int     printtime;
     int     verbose;
 } clpar;
+
+#endif /* INCL_WF3REJ_H */

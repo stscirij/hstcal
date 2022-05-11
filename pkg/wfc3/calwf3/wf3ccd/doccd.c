@@ -59,10 +59,11 @@
 
 # include <string.h>
 # include <stdio.h>
+#include "hstcal.h"
 # include "hstio.h"
 # include "wf3.h"
 # include "wf3info.h"
-# include "wf3err.h"
+# include "hstcalerr.h"
 # include "doccd.h"
 
 int PutKeyDbl(Hdr *, char *, double , char *);
@@ -343,7 +344,7 @@ int DoCCD (WF3Info *wf3, int extver) {
                 sub2full will reset the pixel values
                 */
                 initSingleGroup(&fullarray);
-                allocSingleGroup(&fullarray,RAZ_COLS/2,RAZ_ROWS);
+                allocSingleGroup(&fullarray,RAZ_COLS/2,RAZ_ROWS, True);
                 fullarray.group_num=x.group_num;
                 CreateEmptyChip(wf3, &fullarray);
                 if (x.group_num == 2){ /*post blev*/

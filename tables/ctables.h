@@ -1,8 +1,10 @@
+#ifndef INCL_CTABLES_H
+#define INCL_CTABLES_H
+
 /* NOTE:  this file (ctables.h) depends on fitsio.h */
 
 # include "xtables.h"
 
-# define SZ_FNAME    1024
 # define SZ_ERRMESS  1024
 # define SZ_FITS_STR   80
 
@@ -70,3 +72,5 @@ int checkError (void);
 
 /* in c_vfn2osfn.c */
 int c_vfn2osfn(const char *const vfn, char *const osfn);
+
+#endif /* INCL_CTABLES_H */

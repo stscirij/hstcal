@@ -10,11 +10,12 @@
 # include <stdio.h>
 # include <string.h>
 
+#include "hstcal.h"
 # include "xtables.h"
 # include "hstio.h"
 # include "wf3.h"
 # include "wf3info.h"
-# include "wf3err.h"
+# include "hstcalerr.h"
 # include "wf3dq.h"
 
 # define MIN(a,b) (a < b ? a : b)
@@ -249,7 +250,7 @@ SingleGroup *x    io: image to be calibrated; DQ array written to in-place
 	/* Allocate space for scratch array */
 	initShortHdrData (&ydq);
 	if (!in_place) {
-	    allocShortHdrData (&ydq, snpix[0], snpix[1]);
+	    allocShortHdrData (&ydq, snpix[0], snpix[1], True);
 	    if (hstio_err()) {
 		trlerror ("doDQI couldn't allocate data quality array.");
 		return (status = OUT_OF_MEMORY);

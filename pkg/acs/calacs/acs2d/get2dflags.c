@@ -1,10 +1,11 @@
 # include <stdio.h>
 # include <string.h>		/* for strncmp, strcmp */
 
+#include "hstcal.h"
 # include "hstio.h"
 # include "acs.h"
 # include "acsinfo.h"
-# include "acserr.h"		/* defines error codes */
+# include "hstcalerr.h"		/* defines error codes */
 
 static int checkCCD (Hdr *, ACSInfo *, int *);
 static int checkDark (Hdr *, ACSInfo *, int *, int *);

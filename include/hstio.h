@@ -5,7 +5,10 @@
 extern "C" {
 # endif
 
-# define HSTIO_VERSION "HSTIO Version 2.6 (11-Mar-2010)"
+# include <stdlib.h>
+# include <stdio.h>
+
+# define HSTIO_VERSION "HSTIO Version 2.7 (09-Aug-2018)"
 
 /*
 ** Data Structures and I/O Function Declarations for
@@ -117,15 +120,28 @@ extern "C" {
 **
 */
 
-# include <stdlib.h>
 
 # define SZ_PATHNAME 511
+
+#define intFormat "%12d"
+#define floatFormat "%#14.7E"
+#define doubleFormat "%#20.12E"
 
 # if !defined(BOOL_)
 # define BOOL_
 enum Bool_ { False = 0, True = 1 };
 typedef enum Bool_ Bool;
 # endif
+
+enum StorageOrder
+{
+    ROWMAJOR,
+    COLUMNMAJOR
+};
+
+#define SCIEXT 0x01
+#define ERREXT 0x02
+#define DQEXT 0x04
 
 typedef struct {
         short *buffer;          /* the pointer to the beg. of the buffer */
@@ -134,6 +150,7 @@ typedef struct {
         int tot_ny;             /*     buffer_size = tot_nx*tot_ny       */
         int nx;                 /* The size of the current "view" of the */
         int ny;                 /* full 2-d array.                       */
+        enum StorageOrder storageOrder;
         short *data;            /* The pointer to the beginning of the   */
                                 /* subsection of the full 2-d array.     */
 } ShortTwoDArray;
@@ -145,9 +162,9 @@ typedef struct {
         int tot_ny;
         int nx;
         int ny;
+        enum StorageOrder storageOrder;
         float *data;
 } FloatTwoDArray;
-
 
 /*
 ** The Following macros are used to represent 2-d indexing.
@@ -169,10 +186,12 @@ typedef struct {
 */
 
 # define Pix(a,i,j)      (a).data[(j)*(a).tot_nx + (i)]
+# define PixColumnMajor(a,i,j) (a).data[(j)*(a).tot_ny + (i)]
 # define DQPix(a,i,j)    (a).data[(j)*(a).tot_nx + (i)]
 # define DQSetPix(a,i,j,value) (a).data[(j)*(a).tot_nx + (i)] = (value)
 
 # define PPix(a,i,j)      (a)->data[(j)*(a)->tot_nx + (i)]
+# define PPixColumnMajor(a,i,j) (a)->data[(j)*(a)->tot_ny + (i)]
 # define PDQPix(a,i,j)    (a)->data[(j)*(a)->tot_nx + (i)]
 # define PDQSetPix(a,i,j,value) (a)->data[(j)*(a)->tot_nx + (i)] = (value)
 
@@ -212,6 +231,8 @@ typedef struct {
         int sx;                 /* The sizes of the X and Y dimensions  */
         int sy;                 /* of the section.                      */
 } DataSection;
+void copyDataSection(DataSection * dest, const DataSection * src);
+
 
 # define HDRSize 81
 typedef char HdrArray[HDRSize]; /* Headers are simply an array of fixed */
@@ -407,6 +428,10 @@ void clear_hstioerr(void);
 int  openSingleGroupLine  (char *filename, int extver, SingleGroupLine *);
 void closeSingleGroupLine (SingleGroupLine *);
 
+int fcloseNull(FILE * stream); // returns 0 if stream=NULL, returns fclose otherwise
+int fcloseWithStatus(FILE ** stream); // calls fcloseNull & returns IO_ERROR upon error,
+                                      // 0 otherwise. Sets *stream=NULL always.
+
 int ckNewFile(char *fname);
 int openFitsFile(char *filename, unsigned int option);
 int closeFitsFile(char *filename);
@@ -542,11 +567,25 @@ int getKeyI (Hdr *, char *keyword, int *value);
 int getKeyF (Hdr *, char *keyword, float *value);
 int getKeyD (Hdr *, char *keyword, double *value);
 int getKeyS (Hdr *, char *keyword, char *value);
+/*\group(put)*/
 int putKeyB (Hdr *, char *keyword, Bool value, char *comment);
 int putKeyI (Hdr *, char *keyword, int value, char *comment);
 int putKeyF (Hdr *, char *keyword, float value, char *comment);
 int putKeyD (Hdr *, char *keyword, double value, char *comment);
 int putKeyS (Hdr *, char *keyword, char *value, char *comment);
+/*\group(update)*/
+// The following updateKeyX() will only set values for existing keywords
+int updateKeyB (Hdr *, char *keyword, Bool value, char *comment);
+int updateKeyI (Hdr *, char *keyword, int value, char *comment);
+int updateKeyF (Hdr *, char *keyword, float value, char *comment);
+int updateKeyD (Hdr *, char *keyword, double value, char *comment);
+int updateKeyS (Hdr *, char *keyword, char *value, char *comment);
+// Updates existing keyword OR add as history keyword
+int updateKeyOrAddAsHistKeyBool (Hdr *hd, char *keyword, Bool value, char *comment);
+int updateKeyOrAddAsHistKeyInt (Hdr *hd, char *keyword, int value, char *comment);
+int updateKeyOrAddAsHistKeyFloat (Hdr *hd, char *keyword, float value, char *comment);
+int updateKeyOrAddAsHistKeyDouble (Hdr *hd, char *keyword, double value, char *comment);
+int updateKeyOrAddAsHistKeyStr (Hdr *hd, char *keyword, char *value, char *comment);
 /* End high-level keyword access routines */
 
 char *getKwName(FitsKw);
@@ -668,12 +707,14 @@ void updateWCS (Hdr *hdr, int xbeg, int ybeg);
 */
 # define IFloatData { NULL, 0, 0, 0, 0, 0, NULL }
 void initFloatData(FloatTwoDArray *);
-int allocFloatData(FloatTwoDArray *, int, int);
+int allocFloatData(FloatTwoDArray *, int, int, Bool zeroInitialize);
 void freeFloatData(FloatTwoDArray *);
+int swapFloatStorageOrder(FloatTwoDArray * target, const FloatTwoDArray * source, enum StorageOrder targetStorageOrder);
 # define IShortData { NULL, 0, 0, 0, 0, 0, NULL }
 void initShortData(ShortTwoDArray *);
-int allocShortData(ShortTwoDArray *, int, int);
+int allocShortData(ShortTwoDArray *, int, int, Bool zeroInitialize);
 void freeShortData(ShortTwoDArray *);
+int swapShortStorageOrder(ShortTwoDArray * target, const ShortTwoDArray * source, enum StorageOrder targetStorageOrder);
 
 # define IFloatLine { NULL, 0 }
 void initFloatLine  (FloatHdrLine *);
@@ -690,18 +731,20 @@ int  allocDQLine  (SingleGroupLine *);
 
 # define IHdr { 0, 0, NULL }
 void initHdr(Hdr *);
-int allocHdr(Hdr *, int);
+int allocHdr(Hdr *, int, Bool zeroInitialize);
 int reallocHdr(Hdr *, int);
 void freeHdr(Hdr *);
-int copyHdr(Hdr *to, Hdr *from);
+int copyHdr(Hdr *to, const Hdr *from);
 
 # define IFloatHdrData { NULL, { 0, 0, 0, 0 }, IHdr, IFloatData }
 void initFloatHdrData(FloatHdrData *);
-int allocFloatHdrData(FloatHdrData *, int, int);
+int allocFloatHdrData(FloatHdrData *, int, int, Bool zeroInitialize);
+int copyFloatHdrData(FloatHdrData * target, const FloatHdrData * src, enum StorageOrder targetStorageOrder);
 void freeFloatHdrData(FloatHdrData *);
 # define IShortHdrData { NULL, { 0, 0, 0, 0 }, IHdr, IShortData }
 void initShortHdrData(ShortHdrData *);
-int allocShortHdrData(ShortHdrData *, int, int);
+int allocShortHdrData(ShortHdrData *, int, int, Bool zeroInitialize);
+int copyShortHdrData(ShortHdrData * target, const ShortHdrData * src, enum StorageOrder targetStorageOrder);
 void freeShortHdrData(ShortHdrData *);
 
 # define IFloatHdrLine { NULL, IHdr, False, 0, NULL }
@@ -716,12 +759,22 @@ void freeShortHdrLine  (ShortHdrLine *);
 # define ISingleGroup { NULL, 0, NULL, IFloatHdrData, IFloatHdrData, \
 IShortHdrData }
 void initSingleGroup(SingleGroup *);
-int allocSingleGroup(SingleGroup *, int, int);
+int allocSingleGroup(SingleGroup *, int, int, Bool zeroInitialize);
+int allocSingleGroupHeader(Hdr ** hdr, Bool zeroInitialize);
+int allocSingleGroupExts(SingleGroup *x, int i, int j, unsigned extension, Bool zeroInitialize);
 void freeSingleGroup(SingleGroup *);
+void setStorageOrder(SingleGroup * group, enum StorageOrder storageOrder);
+int copySingleGroup(SingleGroup * target, const SingleGroup * source, enum StorageOrder targetStorageOrder);
+void copyOffsetSingleGroup(SingleGroup * output, const SingleGroup * input, unsigned nRows, unsigned nColumns, unsigned outputOffset, unsigned inputOffset, unsigned outputSkipLength, unsigned inputSkipLength);
 # define IMultiGroup { 0, NULL }
 void initMultiGroup(MultiGroup *);
 int allocMultiGroup(MultiGroup *, int);
 void freeMultiGroup(MultiGroup *);
+
+int copyFloatData(FloatTwoDArray * target, const FloatTwoDArray * source, enum StorageOrder targetStorageOrder);
+void copyOffsetFloatData(float * output, const float * input, unsigned nRows, unsigned nColumns, unsigned outputOffset, unsigned inputOffset, unsigned outputSkipLength, unsigned inputSkipLength);
+int copyShortData(ShortTwoDArray * target, const ShortTwoDArray * source, enum StorageOrder targetStorageOrder);
+void copyOffsetShortData(short * output, const short * input, unsigned nRows, unsigned nColumns, unsigned outputOffset, unsigned inputOffset, unsigned outputSkipLength, unsigned inputSkipLength);
 
 # define ISingleNicmosGroup { NULL, 0, NULL, IFloatHdrData, IFloatHdrData, \
 IShortHdrData, IShortHdrData, IFloatHdrData }
@@ -738,6 +791,10 @@ IShortHdrLine }
 void initSingleGroupLine  (SingleGroupLine *);
 int  allocSingleGroupLine (SingleGroupLine *, int);
 void freeSingleGroupLine  (SingleGroupLine *);
+
+int getNumHDUs(const char * fileName, int * hduNum);
+int findTotalNumberOfImsets(const char * fileName, const char * setContainsExtName, int * total);
+int findTotalNumberOfHDUSets(const char * fileName, const char * setContainsExtName, const int hduType, int * total);
 
 #if defined(__cplusplus)
 }

@@ -1,9 +1,10 @@
 # include <stdio.h>
 
+#include "hstcal.h"
 # include "hstio.h"
 # include "acs.h"
 # include "acsinfo.h"
-# include "acserr.h"
+# include "hstcalerr.h"
 
 /* This routine subtracts the bias image from x (in-place).
  For ACS science data, it will normally be the
@@ -125,42 +126,39 @@ int doBias (ACSInfo *acs, SingleGroup *x) {
 		}
 	} else {
     
-		/* Loop over all the lines in the science array, and
-     match them to the appropriate line in the reference image... 
-     */
-		/* 
-     i - index for line in science image
-     j - index for line in reference image
-     y0 - line in reference image corresponding to line in input image
-     */
-    initSingleGroupLine (&z);
-    allocSingleGroupLine (&z, x->sci.data.nx);
-		for (i=0, j=y0; i < scilines; i++,j++) { 
+        /* Loop over all the lines in the science array, and
+           match them to the appropriate line in the reference image... 
+           i - index for line in science image
+           j - index for line in reference image
+           y0 - line in reference image corresponding to line in input image
+        */
+        initSingleGroupLine (&z);
+        allocSingleGroupLine (&z, x->sci.data.nx);
+        for (i=0, j=y0; i < scilines; i++,j++) { 
+            /* We are working with a sub-array and need to apply the
+               proper section from the reference image to the science image.
+            */
+            status = getSingleGroupLine (acs->bias.name, j, &y);
+            if (status) {
+                sprintf(MsgText,"Could not read line %d from bias image.",j+1);
+                trlerror(MsgText);
+            }			
+
+            update = NO;
+     
+            /* rx = 1; */
+            if (trim1d (&y, x0, y0, rx, avg, update, &z)) {
+                trlerror ("(biascorr) size mismatch.");
+                return (status);
+            }
+
+            status = sub1d (x, i, &z);
+            if (status)
+                return (status);
       
-	    /* We are working with a sub-array and need to apply the
-       proper section from the reference image to the science image.
-       */
-			status = getSingleGroupLine (acs->bias.name, j, &y);
-			if (status) {
-				sprintf(MsgText,"Could not read line %d from bias image.",j+1);
-				trlerror(MsgText);
-			}			
-      
-			update = NO;
-      
-			/* rx = 1; */
-      if (trim1d (&y, x0, y0, rx, avg, update, &z)) {
-				trlerror ("(biascorr) size mismatch.");
-				return (status);
-      }
-			
-			status = sub1d (x, i, &z);
-      if (status)
-        return (status);
-      
-		}
-    freeSingleGroupLine (&z);			/* done with z */
-	}
+        }
+        freeSingleGroupLine (&z);			/* done with z */
+    }
   
 	closeSingleGroupLine (&y);
 	freeSingleGroupLine (&y);

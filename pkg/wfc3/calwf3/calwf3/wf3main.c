@@ -2,9 +2,13 @@
 # include <stdlib.h>
 # include <string.h>
 
+#include "hstcal_memory.h"
+#include "hstcal.h"
 # include "wf3.h"
-# include "wf3err.h"
+# include "hstcalerr.h"
 # include "wf3version.h"
+# include "hstcalversion.h"
+# include "trlbuf.h"
 
 /* H. Bushouse	07-Sep-2011	Implemented new "--version" command line argument. */
 /* M. Sosey     added a -r to also print the version (-v is used, so warren chose r for revision */
@@ -12,12 +16,25 @@
 /* CALWF3 driver: retrieves input table name and calls pipeline
  */
 
-int	status;		/* value of zero indicates OK */
+extern int	status;
+struct TrlBuf trlbuf = { 0 };
+
+/* Standard string buffer for use in messages */
+char MsgText[MSG_BUFF_LENGTH]; // Global char auto initialized to '\0'
+
+static void printSyntax(void)
+{
+    printf("syntax:  calwf3.e [--help] [-t] [-s] [-v] [-q] [-r] [-1] [--version] [--gitinfo] input \n");
+}
+static void printHelp(void)
+{
+    printSyntax();
+}
 
 int main (int argc, char **argv) {
 
 	/* Local variables */
-	char input[SZ_FNAME+1];
+	char input[CHAR_FNAME_LENGTH+1];
 	int printtime = NO;	/* print time after each step? */
 	int save_tmp = DUMMY;	/* save temporary files? */
 	int verbose = NO;	/* print info during processing? */
@@ -39,6 +56,8 @@ int main (int argc, char **argv) {
 
 	/* Initialize IRAF environment */
 	c_irafinit(argc, argv);
+	PtrRegister ptrReg;
+	initPtrRegister(&ptrReg);
 
 	/* Command line arguments: 
 	 **	0. Check for --version option
@@ -50,8 +69,21 @@ int main (int argc, char **argv) {
 	for (i = 1;  i < argc;  i++) {
 		if (!(strcmp(argv[i],"--version"))) {
 			printf("%s\n",WF3_CAL_VER_NUM);
+			freeOnExit(&ptrReg);
 			exit(0);
 		}
+        if (!(strcmp(argv[i],"--gitinfo")))
+        {
+            printGitInfo();
+            freeOnExit(&ptrReg);
+            exit(0);
+        }
+        if (!(strcmp(argv[i],"--help")))
+        {
+            printHelp();
+            freeOnExit(&ptrReg);
+            exit(0);
+        }
 		if (argv[i][0] == '-') {
 			for (j = 1;  argv[i][j] != '\0';  j++) {
 				if (argv[i][j] == 't') {
@@ -60,6 +92,7 @@ int main (int argc, char **argv) {
 					save_tmp = YES;
 				} else if (argv[i][j] == 'r'){
 					printf ("Current version: %s\n", WF3_CAL_VER);
+					freeOnExit(&ptrReg);
 					exit(0);
 				} else if (argv[i][j] == 'v') {
 					verbose = YES;
@@ -71,6 +104,8 @@ int main (int argc, char **argv) {
                     onecpu = YES;
                 } else {
 					printf ("Unrecognized option %s\n", argv[i]);
+					printSyntax();
+					freeOnExit(&ptrReg);
 					exit (ERROR_RETURN);
 				}
 			}
@@ -82,12 +117,15 @@ int main (int argc, char **argv) {
 	}
 
 	if (input[0] == '\0' || too_many) {
-		printf ("syntax:  calwf3.e [-t] [-s] [-v] [-q] [-r] [-1] input \n");
+	    printSyntax();
+	    freeOnExit(&ptrReg);
 		exit (ERROR_RETURN);
 	}
 
 	/* Initialize the structure for managing trailer file comments */
 	InitTrlBuf ();
+    addPtr(&ptrReg, &trlbuf, &CloseTrlBuf);
+    trlGitInfo();
 
 	/* Copy command-line value for QUIET to structure */
 	SetTrlQuietMode (quiet);
@@ -101,6 +139,7 @@ int main (int argc, char **argv) {
 			status = 0;
 			sprintf (MsgText, "CALWF3 did NOT process %s", input);
 			trlmessage (MsgText);
+			freeOnExit(&ptrReg);
 			exit(0); 
 		} else {
 			/* Error during processing */
@@ -109,7 +148,7 @@ int main (int argc, char **argv) {
 			trlerror (MsgText);
 			/* Provide interpretation of error for user */
 			WhichError (status);
-			CloseTrlBuf ();
+			freeOnExit(&ptrReg);
 			exit (ERROR_RETURN);
 		}
 	}
@@ -118,7 +157,8 @@ int main (int argc, char **argv) {
 	sprintf (MsgText, "CALWF3 completion for %s", input);
 	trlmessage (MsgText);
 
-	CloseTrlBuf ();
+
+	freeOnExit(&ptrReg);
 
 	/* Exit the program */
 	exit (0);

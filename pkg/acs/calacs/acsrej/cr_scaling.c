@@ -1,8 +1,9 @@
 # include   <stdio.h>
+#include "hstcal.h"
 # include   "hstio.h"
 
 # include   "acs.h"
-# include   "acserr.h"
+# include   "hstcalerr.h"
 # include   "rej.h"
 
 /*  cr_scaling -- Determine the scaling factors according to exposure times or
@@ -33,7 +34,7 @@ int cr_scaling (char *expname, IRAFPointer tpin, float efac[], int *nimgs, doubl
 
     Hdr         prihdr;
     int         nzero, k;
-    char        fdata[ACS_FNAME + 1];
+    char        fdata[CHAR_FNAME_LENGTH + 1];
     IODescPtr   ip;
     int         numimgs;        /* How many good input images are there? */
 
@@ -75,7 +76,7 @@ int cr_scaling (char *expname, IRAFPointer tpin, float efac[], int *nimgs, doubl
     for (k = 0; k < *nimgs; ++k) {
 
         /* read the next input image name in the template list */
-        c_imtgetim (tpin, fdata, ACS_FNAME);
+        c_imtgetim (tpin, fdata, CHAR_FNAME_LENGTH);
 
         /* open the primary header */
         ip = openInputImage (fdata, "", 0);

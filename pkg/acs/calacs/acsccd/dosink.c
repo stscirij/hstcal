@@ -1,10 +1,11 @@
 /* ACS -- Detect and mark SINK pixels in the DQ array. */
 # include <stdio.h>
 
+#include "hstcal.h"
 # include "hstio.h"
 # include "acs.h"
 # include "acsinfo.h"
-# include "acserr.h"
+# include "hstcalerr.h"
 
 /* local mask values */
 # define SINKPIXEL (short)1024

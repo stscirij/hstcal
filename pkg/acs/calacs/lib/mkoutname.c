@@ -7,7 +7,8 @@
 # include <stdio.h>
 # include <stdlib.h>
 # include <string.h>
-# include "acserr.h"
+#include "hstcal.h"
+# include "hstcalerr.h"
 # include "acs.h"	/* for message output */
 
 static int FindExtn (char *);

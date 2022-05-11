@@ -1,3 +1,6 @@
+#ifndef INCL_WF3INFO_H
+#define INCL_WF3INFO_H
+
 /* wf3info.h
 
     Warren Hack, 1998 June 10:
@@ -79,6 +82,10 @@
     value to scale subarray images which have only 1 set of science
     images. When the chip being processed is chip2, then the flam
     for chip1 will be saved in the structure for use in fluxcorr.
+
+    M. De La Pena 2020 March:
+    Read the PCTERNOI value from the raw image header for possible 
+    use in the CTE reduction.
  
 */
 
@@ -98,10 +105,10 @@ typedef enum DataUnits_ DataUnits;
 /* Structure describing SINGLE CHIP exposure and its reference files */
 typedef struct {
     /* input and output image names */
-    char input[SZ_LINE+1];	   /* input image to be calibrated */
-    char output[SZ_LINE+1];        /* output calibrated image */
+    char input[CHAR_LINE_LENGTH+1];	   /* input image to be calibrated */
+    char output[CHAR_LINE_LENGTH+1];        /* output calibrated image */
 
-    char rootname[SZ_CBUF+1];      /* root name for set of obs */
+    char rootname[CHAR_LINE_LENGTH+1];      /* root name for set of obs */
 
     /* command-line flags */
     int printtime;                  /* print time after each step? */
@@ -157,6 +164,7 @@ typedef struct {
     int biassectd[2];   /* Columns to use for trailing overscan region amp 2 */
     float flashdur;	/* duration of post-flash (in seconds) */
     char flashstatus[SZ_CBUF+1]; /* status of post-flash exposure */
+    float pcternoi;     /* Read noise amplitude */
 
     /* IR-specific info */
     int group;		/* current group being processed */
@@ -262,3 +270,5 @@ typedef struct {
 	FloatHdrData *zerr;
 } NlinData;
 
+
+#endif /* INCL_WF3INFO_H */

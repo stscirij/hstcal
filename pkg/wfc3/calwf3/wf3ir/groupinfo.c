@@ -1,10 +1,11 @@
 # include <stdio.h>
 # include <string.h>
 
+#include "hstcal.h"
 # include "hstio.h"/* defines HST I/O functions */
 # include "wf3.h"
 # include "wf3info.h"
-# include "trl.h"
+# include "trlbuf.h"
 
 extern int status;
 
@@ -96,7 +97,7 @@ int getDataUnits (WF3Info *wf3, Hdr *header) {
 */
 
 	/* Local variables */
-	char units[9];				/* BUNIT keyword value */
+	char units[12];				/* BUNIT keyword value */
 
 	/* Read the BUNIT keyword */
 	units[0] = '\0';

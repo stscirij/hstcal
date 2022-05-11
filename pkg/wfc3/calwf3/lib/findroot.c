@@ -1,15 +1,16 @@
 # include <stdio.h>
 # include <string.h>
 
+#include "hstcal.h"
 # include "msg.h"
 
 # define NSUF	16
 
-void FindAsnRoot (char *input, char *root) {
+void FindAsnRoot (const char *input, char *root) {
 
 	int i;
 	int in_len;
-	char filename[SZ_FNAME+1];
+	char filename[CHAR_FNAME_LENGTH+1];
 	
 	/* names of WF3 product suffixes */
 	char prodsuf[NSUF][SZ_CBUF+1] = {

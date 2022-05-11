@@ -1,12 +1,13 @@
 # include <stdio.h>
 # include <stdlib.h>		/* for malloc */
 # include <math.h>		/* for fabs */
+#include "hstcal.h"
 # include "xtables.h"
 
 # include "hstio.h"
 # include "wf3.h"
 # include "wf3info.h"
-# include "wf3err.h"
+# include "hstcalerr.h"
 # include "wf3dq.h"		/* for SATPIXEL */
 
 typedef struct {

@@ -1,3 +1,6 @@
+#ifndef INCL_WF3SUM_H
+#define INCL_WF3SUM_H
+
 /* wf3sum.h Sum Repeatobs data */
 
 /* include "../wf3.h" */
@@ -9,7 +12,7 @@
 typedef struct {
 
 	char **input;			/* input images */
-	char output[SZ_LINE+1];		/* output sum */
+	char output[CHAR_LINE_LENGTH+1];		/* output sum */
 
 	char rootname[SZ_CBUF+1];	/* root name for set of obs */
 
@@ -31,3 +34,5 @@ typedef struct {
 
 } Wf3SumInfo;
 
+
+#endif /* INCL_WF3SUM_H */

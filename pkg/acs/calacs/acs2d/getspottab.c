@@ -1,11 +1,12 @@
 # include <stdio.h>
 
+#include "hstcal.h"
 # include "hstio.h"
 # include "xtables.h"
 # include <time.h>
 
 # include "acs.h"
-# include "acserr.h"
+# include "hstcalerr.h"
 
 typedef struct {
 	IRAFPointer tp;			/* pointer to table descriptor */

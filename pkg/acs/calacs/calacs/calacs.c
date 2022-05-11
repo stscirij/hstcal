@@ -1,13 +1,16 @@
 # include <stdio.h>
 # include <stdlib.h>    /* calloc */
 # include <string.h>
+# include <stdbool.h>
 
+#include "hstcal.h"
 # include "xtables.h"   /* for IRAFPointer definition */
 # include "hstio.h"
 
 # include "acs.h"
 # include "calacs.h"
-# include "acserr.h"
+# include "hstcalerr.h"
+#include "hstcal_memory.h"
 # include "acscorr.h"
 # include "acsasn.h"    /* Contains association table structures */
 
@@ -53,15 +56,32 @@
  Separated PCTECORR from ACSCCD. Fixed indentation nightmare.
 */
 
+void updateAsnTable (AsnInfo *, int, int);
+int OmitStep (int flag);
+int ACS2d (char *input, char *output, CalSwitch *acs2d_sw, RefFileInfo *refnames,
+        int printtime, int verbose);
 
 static int ACSRej_0 (char *, char *, char *, int, int, int);
+static int ACSRej_0Wrapper(char * inputList,
+        char * crTempName,
+        char * crFileName,
+        char * asnTempProductName,
+        ACSInfo *acshdr,
+        AsnInfo *asn,
+        int prod,
+        int posid,
+        CalSwitch * acs2d_sci_sw,
+        RefFileInfo * sciref,
+        int printtime,
+        int save,
+        Bool updateASNTableFlag);
 
 static int CopyFFile (char *, char *);
 static void SetACSSw (CalSwitch *, CalSwitch *, CalSwitch *, CalSwitch *);
 static void ResetACSSw (CalSwitch *, CalSwitch *);
 
 
-int CalAcsRun (char *input, int printtime, int save_tmp, int verbose, int debug, int onecpu) {
+int CalAcsRun (char *input, int printtime, int save_tmp, int verbose, int debug, const unsigned nThreads, const unsigned cteAlgorithmGen, const char * pcteTabNameFromCmd) {
 
     /* arguments:
        char *input     i: name of the FITS file/table to be processed
@@ -89,11 +109,10 @@ int CalAcsRun (char *input, int printtime, int save_tmp, int verbose, int debug,
     void initAsnInfo (AsnInfo *);
     void freeAsnInfo (AsnInfo *);
     int LoadAsn (AsnInfo *);
-    int ProcessCCD (AsnInfo *, ACSInfo *, int *, int, int);
+    int ProcessACSCCD (AsnInfo *, ACSInfo *, int *, int, const unsigned nThreads, const unsigned cteAlgorithmGen, const char * pcteTabNameFromCmd);
     int ProcessMAMA (AsnInfo *, ACSInfo *, int);
     int AcsDth (char *, char *, int, int, int);
     char *BuildDthInput (AsnInfo *, int);
-    void updateAsnTable (AsnInfo *, int, int);
     void InitDthTrl (char *, char *);
 
     /* Post error handler */
@@ -158,7 +177,7 @@ int CalAcsRun (char *input, int printtime, int save_tmp, int verbose, int debug,
         if (asn.verbose) {
             trlmessage ("CALACS: processing a CCD product");
         }
-        if (ProcessCCD(&asn, &acshdr, &save_tmp, printtime, onecpu)) {
+        if (ProcessACSCCD(&asn, &acshdr, &save_tmp, printtime, nThreads, cteAlgorithmGen, pcteTabNameFromCmd)) {
             if (status == NOTHING_TO_DO) {
                 trlwarn ("No processing desired for CCD data.");
             } else {
@@ -258,12 +277,12 @@ char *BuildSumInput (AsnInfo *asn, int prod, int posid) {
     int acssum_len;
     int i;
     char *acssum_input;
-    char tmpexp[ACS_LINE];
-    char tmpflt[ACS_LINE];
+    char tmpexp[CHAR_LINE_LENGTH];
+    char tmpflt[CHAR_LINE_LENGTH];
     int MkName (char *, char *, char *, char *, char *, int);
 
     /* Determine how long this string needs to be... */
-    /*nchars = asn->spmems[posid] * ACS_FNAME; */
+    /*nchars = asn->spmems[posid] * CHAR_FNAME_LENGTH; */
     nchars = 1;
 
     /* Keep track of individual filename lengths and total length*/
@@ -272,7 +291,7 @@ char *BuildSumInput (AsnInfo *asn, int prod, int posid) {
     for (i=1; i <= asn->spmems[posid]; i++) {
         strcpy(tmpexp, asn->product[prod].subprod[posid].exp[i].expname);
 
-        if (MkName (tmpexp, "_raw", "_flt", "", tmpflt, ACS_LINE)) {
+        if (MkName (tmpexp, "_raw", "_flt", "", tmpflt, CHAR_LINE_LENGTH)) {
             strcpy (tmpflt,asn->product[prod].subprod[posid].exp[i].name);
             strcat (tmpflt, "_flt.fits");
         }
@@ -291,7 +310,7 @@ char *BuildSumInput (AsnInfo *asn, int prod, int posid) {
     for (i=1; i <= asn->spmems[posid]; i++) {
         strcpy(tmpexp, asn->product[prod].subprod[posid].exp[i].expname);
 
-        if (MkName (tmpexp, "_raw", "_flt", "", tmpflt, ACS_LINE)) {
+        if (MkName (tmpexp, "_raw", "_flt", "", tmpflt, CHAR_LINE_LENGTH)) {
             strcpy (tmpflt,asn->product[prod].subprod[posid].exp[i].name);
             strcat (tmpflt, "_flt.fits");
         }
@@ -313,11 +332,11 @@ char *BuildDthInput (AsnInfo *asn, int prod) {
     int nchars;
     int i;
     char *acsdth_input;
-    char tmpexp[ACS_LINE];
+    char tmpexp[CHAR_LINE_LENGTH];
     int MkName (char *, char *, char *, char *, char *, int);
 
     /* Determine how long this string needs to be... */
-    nchars = asn->numsp * ACS_FNAME;
+    nchars = asn->numsp * CHAR_FNAME_LENGTH;
     acsdth_input = (char *) calloc( nchars + 1, sizeof(char));
     /* Initialize this string to NULL */
     acsdth_input[0] = '\0';
@@ -326,7 +345,7 @@ char *BuildDthInput (AsnInfo *asn, int prod) {
     for (i=1; i <= asn->numsp; i++) {
         strcpy(tmpexp, asn->product[prod].subprod[i].spname);
 
-        /*if (MkName (tmpexp, "_crj_tmp", "_crj", "", tmpflt, ACS_LINE)) {
+        /*if (MkName (tmpexp, "_crj_tmp", "_crj", "", tmpflt, CHAR_LINE_LENGTH)) {
             strcpy (tmpflt,asn->product[prod].subprod[posid].exp[i].name);
             strcat (tmpflt, "_crj.fits");
         }
@@ -340,8 +359,67 @@ char *BuildDthInput (AsnInfo *asn, int prod) {
     return(acsdth_input);
 }
 
+static int ACSRej_0Wrapper(char * inputList,
+        char * crTempName,
+        char * crFileName,
+        char * asnTempProductName,
+        ACSInfo *acshdr,
+        AsnInfo *asn,
+        int prod,
+        int posid,
+        CalSwitch * acs2d_sci_sw,
+        RefFileInfo * sciref,
+        int printtime,
+        int save,
+        Bool updateASNTableFlag)
+{
+    if (ACSRej_0 (inputList, crTempName, acshdr->mtype,
+                                  acshdr->readnoise_only, printtime, asn->verbose))
+    {
+        if (status == NO_GOOD_DATA)
+        {
+            /* Turn off further processing... */
+            acshdr->sci_basic_2d = SKIPPED;
+            /* Reset STATUS to good now that we have dealt with
+               this condition. */
+            status = ACS_OK;
+        } else {
+            return (status);
+        }
+    }
 
-int ProcessCCD (AsnInfo *asn, ACSInfo *acshdr, int *save_tmp, int printtime, int onecpu) {
+    if (updateASNTableFlag)
+        updateAsnTable(asn, prod, posid);
+
+    if (acshdr->sci_basic_2d == PERFORM)
+    {
+        /* Flat field the summed, cosmic ray rejected image. */
+        if (ACS2d (crTempName, crFileName,
+                   acs2d_sci_sw, sciref, printtime, asn->verbose))
+            return (status);
+    }
+    else
+    {
+        /* Remember CR-combined image as final output name, since
+           ACS2D was not run. */
+        if (CopyFFile (crTempName, crFileName))
+            return (status);
+        /*strcpy (acshdr->crj_tmp, acshdr->crjfile);
+        save_crj = YES;*/
+    }
+
+    /* Remember what crj_tmp files to delete */
+    strcpy (asnTempProductName,/*asn->product[prod].subprod[posid].crj_tmp,*/
+            crTempName);
+
+    /* Done with CRCORR processing so delete _crj_tmp file. */
+    if (save != YES)
+        remove (asnTempProductName);//asn->product[prod].subprod[posid].crj_tmp);
+
+    return HSTCAL_OK;
+}
+
+int ProcessACSCCD (AsnInfo *asn, ACSInfo *acshdr, int *save_tmp, int printtime, const unsigned nThreads, const unsigned cteAlgorithmGen, const char * pcteTabNameFromCmd) {
 
     extern int status;
 
@@ -369,13 +447,12 @@ int ProcessCCD (AsnInfo *asn, ACSInfo *acshdr, int *save_tmp, int printtime, int
     void FreeRefFile (RefFileInfo *);
     int ACSRefInit (ACSInfo *, CalSwitch *, RefFileInfo *);
     int ACSccd (char *, char *, CalSwitch *, RefFileInfo *, int, int);
-    int ACScte (char *, char *, CalSwitch *, RefFileInfo *, int, int, int);
+    int ACScte (char *, char *, CalSwitch *, RefFileInfo *, int, int, int, const unsigned cteAlgorithmGen, const char * pcteTabNameFromCmd, const bool forwardModelOnly);
     int ACS2d (char *, char *,CalSwitch *, RefFileInfo *, int, int);
     int GetAsnMember (AsnInfo *, int, int, int, ACSInfo *);
     int GetSingle (AsnInfo *, ACSInfo *);
     int CheckCorr (AsnInfo *, ACSInfo *);
     int InsertACSSuffix (ACSInfo *);
-    void updateAsnTable (AsnInfo *, int, int);
 
     save_crj = *save_tmp;  /* initial value; */
 
@@ -395,7 +472,7 @@ int ProcessCCD (AsnInfo *asn, ACSInfo *acshdr, int *save_tmp, int printtime, int
             }
             /*  Allocate space for ACSREJ input image list */
             if ( (asn->crcorr == PERFORM) || (asn->rptcorr == PERFORM) ) {
-                nchars = asn->spmems[posid] * ACS_FNAME;
+                nchars = asn->spmems[posid] * CHAR_FNAME_LENGTH;
                 acsrej_input = (char *) calloc( nchars + 1, sizeof(char));
                 /* Initialize this string to NULL */
                 acsrej_input[0] = '\0';
@@ -533,9 +610,10 @@ int ProcessCCD (AsnInfo *asn, ACSInfo *acshdr, int *save_tmp, int printtime, int
 
                 /* Do PCTECORR now. */
                 if (acshdr->sci_basic_cte == PERFORM) {
+                    // ``forwardModelOnly = false`` because it is not part of the pipeline processing.
                     if (ACScte(acshdr->blv_tmp, acshdr->blc_tmp,
                                &acscte_sci_sw, &sciref, printtime,
-                               asn->verbose, onecpu)) {
+                               asn->verbose, nThreads, cteAlgorithmGen, pcteTabNameFromCmd, false)) {
                         return (status);
                     }
                 }
@@ -630,99 +708,62 @@ int ProcessCCD (AsnInfo *asn, ACSInfo *acshdr, int *save_tmp, int printtime, int
                     strcpy (acshdr->mtype, asn->product[prod].mtype);
                 }
 
-                /* Reject cosmic rays. */
-                if (ACSRej_0 (acsrej_input, acshdr->crj_tmp, acshdr->mtype,
-                              acshdr->newbias, printtime, asn->verbose)) {
-                    if (status == NO_GOOD_DATA){
-                        /* Turn off further processing... */
-                        acshdr->sci_basic_2d = SKIPPED;
-                        /* Reset STATUS to good now that we have dealt with
-                           this condition. */
-                        status = ACS_OK;
-                    } else {
-                        return (status);
-                    }
+                // Reject cosmic rays.
+                int pctecorrSwitchState = acscte_sci_sw.pctecorr;
+                if (!OmitStep(pctecorrSwitchState))
+                {
+                    // Temporarily set this to OMIT so that ACS2d, called within
+                    // the ACSRej_oWrapper call stack, uses the non-CTE darks.
+                    // This is not thread safe.
+                    acs2d_sci_sw.pctecorr = OMIT;
                 }
-
-                updateAsnTable (asn, prod, posid);
-
-                /* Free up memory used by acsrej_input for this subproduct */
-                free(acsrej_input);
-
-                if (acshdr->sci_basic_2d == PERFORM) {
-                    /* Flat field the summed, cosmic ray rejected image. */
-                    if (ACS2d (acshdr->crj_tmp, acshdr->crjfile,
-                               &acs2d_sci_sw, &sciref, printtime, asn->verbose))
-                        return (status);
-
-                } else {
-
-                    /* Remember CR-combined image as final output name, since
-                       ACS2D was not run. */
-                    if (CopyFFile (acshdr->crj_tmp, acshdr->crjfile))
-                        return (status);
-                    /*strcpy (acshdr->crj_tmp, acshdr->crjfile);
-                    save_crj = YES;*/
+                if ((status = ACSRej_0Wrapper(acsrej_input,
+                        acshdr->crj_tmp,
+                        acshdr->crjfile,
+                        asn->product[prod].subprod[posid].crj_tmp,
+                        acshdr,
+                        asn,
+                        prod,
+                        posid,
+                        &acs2d_sci_sw,
+                        &sciref,
+                        printtime,
+                        save_crj,
+                        True)))
+                {
+                    //freeStuff
+                    delete((void**)&acsrej_input);
+                    return status;
                 }
+                if (!OmitStep(pctecorrSwitchState))
+                    acs2d_sci_sw.pctecorr = pctecorrSwitchState;
+                delete((void**)&acsrej_input);
 
-                /* Remember what crj_tmp files to delete */
-                strcpy (asn->product[prod].subprod[posid].crj_tmp,
-                        acshdr->crj_tmp);
 
-                /* Done with CRCORR processing so delete _crj_tmp file. */
-                if (save_crj != YES)
-                    remove (asn->product[prod].subprod[posid].crj_tmp);
 
                 /* now repeat the same thing with CTE corrected products */
-                if (acscte_sci_sw.pctecorr == PERFORM) {
-                    /* Reject cosmic rays. */
-                    if (ACSRej_0 (acsrejc_input, acshdr->crc_tmp, acshdr->mtype,
-                                  acshdr->newbias, printtime, asn->verbose)){
-                        if (status == NO_GOOD_DATA){
-                            /* Turn off further processing... */
-                            acshdr->sci_basic_2d = SKIPPED;
-                            /* Reset STATUS to good now that we have dealt with
-                               this condition. */
-                            status = ACS_OK;
-                        } else {
-                            return (status);
-                        }
+                if (!OmitStep(acscte_sci_sw.pctecorr))
+                {
+                    if ((status = ACSRej_0Wrapper(acsrejc_input,
+                            acshdr->crc_tmp,
+                            acshdr->crcfile,
+                            asn->product[prod].subprod[posid].crc_tmp,
+                            acshdr,
+                            asn,
+                            prod,
+                            posid,
+                            &acs2d_sci_sw,
+                            &sciref,
+                            printtime,
+                            save_crj,
+                            False)))
+                    {
+                        //freeStuff
+                        delete((void**)&acsrejc_input);
+                        return status;
                     }
-
-                    /* commenting this out. will CRC products be a separate
-                       entry in association tables? MRD 10 Mar 2011
-                    updateAsnTable (asn, prod, posid); */
-
-                    /* Free up memory used by acsrejc_input for this
-                       subproduct */
-                    free(acsrejc_input);
-
-                    if (acshdr->sci_basic_2d == PERFORM) {
-                        /* Flat field the summed, cosmic ray rejected image. */
-                        if (ACS2d (acshdr->crc_tmp, acshdr->crcfile,
-                                   &acs2d_sci_sw, &sciref, printtime,
-                                   asn->verbose))
-                            return (status);
-
-                    } else {
-
-                        /* Remember CR-combined image as final output name, since
-                           ACS2D was not run. */
-                        if (CopyFFile (acshdr->crc_tmp, acshdr->crcfile))
-                            return (status);
-                        /*strcpy (acshdr->crc_tmp, acshdr->crcfile);
-                        save_crj = YES;*/
-                    }
-
-                    /* Remember what crc_tmp files to delete */
-                    strcpy (asn->product[prod].subprod[posid].crc_tmp,
-                            acshdr->crc_tmp);
-
-                    /* Done with CRCORR processing so delete _crc_tmp file. */
-                    if (save_crj != YES)
-                        remove (asn->product[prod].subprod[posid].crc_tmp);
                 }
-
+                delete((void**)&acsrejc_input);
             }  /* End of CRCORR processing */
 
             if (asn->debug){
@@ -861,7 +902,7 @@ int ProcessMAMA (AsnInfo *asn, ACSInfo *acshdr, int printtime) {
                              all remaining trailer files */
 
     char *acssum_input;  /* Input list for ACSSUM */
-    char acssum_output[ACS_FNAME+1];
+    char acssum_output[CHAR_FNAME_LENGTH+1];
     char acssum_mtype[SZ_STRKWVAL+1];  /* Role of exposure in association */
     char *acssum_msgtext;
 
@@ -1170,7 +1211,7 @@ static int CopyFFile (char *infile, char *outfile) {
     if ((ifp = fopen (infile, "rb")) == NULL) {
         sprintf (MsgText, "Can't open %s.", infile);
         trlerror (MsgText);
-        fclose (ofp);
+        (void)fcloseWithStatus(&ofp);
         remove (outfile);
         free (buf);
         return (status = OPEN_FAILED);
@@ -1183,8 +1224,8 @@ static int CopyFFile (char *infile, char *outfile) {
             sprintf (MsgText, "Can't read from %s (copying to %s).",
             infile, outfile);
             trlerror (MsgText);
-            fclose (ofp);
-            fclose (ifp);
+            (void)fcloseWithStatus(&ofp);
+            (void)fcloseWithStatus(&ifp);
             free (buf);
             return (status = FILE_NOT_READABLE);
         }
@@ -1195,15 +1236,15 @@ static int CopyFFile (char *infile, char *outfile) {
         if (nout < nin) {
             sprintf (MsgText, "Can't copy %s to %s.", infile, outfile);
             trlerror (MsgText);
-            fclose (ofp);
-            fclose (ifp);
+            (void)fcloseWithStatus(&ofp);
+            (void)fcloseWithStatus(&ifp);
             free (buf);
             return (status = COPY_NOT_POSSIBLE);
         }
     }
 
-    fclose (ofp);
-    fclose (ifp);
+    (void)fcloseWithStatus(&ofp);
+    (void)fcloseWithStatus(&ifp);
     free (buf);
 
     /* Update the FILENAME keyword in the primary header of the output file. */
@@ -1223,7 +1264,7 @@ static int CopyFFile (char *infile, char *outfile) {
    default parameters, copies printtime and verbose into the par structure,
    and calls ACSRej.
 */
-static int ACSRej_0 (char *input, char *output, char *mtype, int newbias, int printtime, int verbose) {
+static int ACSRej_0 (char *input, char *output, char *mtype, int readnoise_only, int printtime, int verbose) {
 
     extern int status;
     clpar par;              /* parameters used */
@@ -1235,7 +1276,7 @@ static int ACSRej_0 (char *input, char *output, char *mtype, int newbias, int pr
     rej_reset (&par, newpar);
     par.printtime = printtime;
     par.verbose = verbose;
-    par.newbias = newbias;
+    par.readnoise_only = readnoise_only;
 
     status = AcsRej (input, output, mtype, &par, newpar);
 

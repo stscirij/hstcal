@@ -18,7 +18,7 @@
 
 # include "stis.h"
 # include "calstis7.h"
-# include "stiserr.h"
+# include "hstcalerr.h"
 # include "stisdef.h"
 # include "stispht.h"
 # include "stistds.h"
@@ -446,7 +446,7 @@ StisInfo7 *sts    i: calibration switches and info
 		AddOffsets (sts, &slit);
 
 		/* Create output imset. */
-		allocSingleGroup (out, coord_o->npix[0], coord_o->npix[1]);
+		allocSingleGroup (out, coord_o->npix[0], coord_o->npix[1], True);
 		if (hstio_err())
 		    return (OUT_OF_MEMORY);
 

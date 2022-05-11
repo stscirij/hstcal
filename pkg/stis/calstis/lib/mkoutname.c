@@ -7,10 +7,9 @@
 # include <stdlib.h>
 # include <string.h>
 
+#include "hstcal.h"
 # include "stis.h"
-# include "stiserr.h"
-
-# define FITS_EXTN  ".fits"	/* default extension */
+# include "hstcalerr.h"
 
 static int FindExtn (char *);
 static int strcatN (char *, char *, int);

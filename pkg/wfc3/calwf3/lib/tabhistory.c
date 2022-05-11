@@ -1,8 +1,9 @@
 # include <stdio.h>
 # include <string.h>
+#include "hstcal.h"
 # include "hstio.h"
 # include "wf3.h"
-# include "wf3err.h"
+# include "hstcalerr.h"
 
 /* This routine writes history records for a reference table, including
    the name of the file and the pedigree and descrip values.
@@ -20,7 +21,7 @@ Hdr *phdr         io: header to receive history records
 
 	extern int status;
 
-	char history[SZ_LINE+1];
+	char history[CHAR_LINE_LENGTH+1];
 
 	strcpy (history, "  reference table ");
 	strcat (history, ref->name);

@@ -1,5 +1,6 @@
 # include <string.h>
 # include <fitsio.h>
+#include "hstcal.h"
 # include "ctables.h"
 
 Bool c_tbhgtb (IRAFPointer tp, char *keyword) {
@@ -116,7 +117,7 @@ int maxch               i: maximum length of the string (not including '\0')
 */
 
         TableDescr *tbl_descr;
-        char value[SZ_FNAME+1]; /* hopefully large enough for any keyword */
+        char value[CHAR_FNAME_LENGTH+1]; /* hopefully large enough for any keyword */
         int status = 0;
 
         tbl_descr = (TableDescr *)tp;

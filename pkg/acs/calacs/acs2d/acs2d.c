@@ -8,12 +8,15 @@
 # include <time.h>
 # include <string.h>
 
+#include "hstcal.h"
 # include "hstio.h"
 
 # include "acs.h"
 # include "acsinfo.h"
-# include "acserr.h"
+# include "hstcalerr.h"
 # include "acscorr.h"		/* calibration switch names for calacs */
+# include "trlbuf.h"
+# include "getacskeys.h"
 
 void Init2DTrl (char *, char *);
 
@@ -39,7 +42,6 @@ int ACS2d (char *input, char *output, CalSwitch *acs2d_sw, RefFileInfo *refnames
 	int Do2D (ACSInfo *, int);
 	int FileExists (char *);
 	int Get2dFlags (ACSInfo *, Hdr *);
-	int GetACSKeys (ACSInfo *, Hdr *);
 	int GetLinTab (ACSInfo *);
 	void Sanity2d (ACSInfo *);
 	void TimeStamp (char *, char *);
@@ -105,7 +107,7 @@ int ACS2d (char *input, char *output, CalSwitch *acs2d_sw, RefFileInfo *refnames
 	/* Get keyword values from primary header using same function 
 		used in ACSCCD
 	*/
-	if (GetACSKeys (&acs2d, &phdr)) {
+	if (getAndCheckACSKeys (&acs2d, &phdr)) {
 		freeHdr (&phdr);
 	    return (status);
 	}
@@ -172,14 +174,13 @@ void Init2DTrl (char *input, char *output) {
 	extern int status;
 	int exist;
 
-	char trl_in[ACS_LINE+1]; 	/* trailer filename for input */
-	char trl_out[ACS_LINE+1]; 	/* output trailer filename */
+	char trl_in[CHAR_LINE_LENGTH+1]; 	/* trailer filename for input */
+	char trl_out[CHAR_LINE_LENGTH+1]; 	/* output trailer filename */
 	
 	int MkOutName (char *, char **, char **, int, char *, int);
 	int MkNewExtn (char *, char *);
 	void WhichError (int);
 	int TrlExists (char *);
-	void SetTrlOverwriteMode (int);
 
 	/* Input and output suffixes. */
 	char *isuffix[] = {"_raw", "_blv_tmp", "_blc_tmp", "_crj_tmp", "_crc_tmp"};
@@ -194,12 +195,12 @@ void Init2DTrl (char *input, char *output) {
 	exist = EXISTS_UNKNOWN;
 
 	/* Start by stripping off suffix from input/output filenames */
-	if (MkOutName (input, isuffix, trlsuffix, nsuffix, trl_in, ACS_LINE)) {
+	if (MkOutName (input, isuffix, trlsuffix, nsuffix, trl_in, CHAR_LINE_LENGTH)) {
 		WhichError (status);
 		sprintf (MsgText, "Couldn't determine trailer filename for %s", input);
 		trlmessage (MsgText);
 	}
-	if (MkOutName (output, osuffix, trlsuffix, nsuffix, trl_out, ACS_LINE)) {
+	if (MkOutName (output, osuffix, trlsuffix, nsuffix, trl_out, CHAR_LINE_LENGTH)) {
 		WhichError (status);
 		sprintf (MsgText, "Couldn't create trailer filename for %s", output);
 		trlmessage (MsgText);

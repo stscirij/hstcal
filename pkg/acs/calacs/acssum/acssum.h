@@ -1,3 +1,6 @@
+#ifndef INCL_ACSSUM_H
+#define INCL_ACSSUM_H
+
 /* acssum.h Sum Repeatobs data */
 
 /* include "../acs.h" */
@@ -11,7 +14,7 @@
 typedef struct {
 
 	char **input;				/* input images */
-	char output[ACS_LINE];		/* output sum */
+	char output[CHAR_LINE_LENGTH];		/* output sum */
 
 	char rootname[ACS_CBUF];	/* root name for set of obs */
 
@@ -33,3 +36,5 @@ typedef struct {
 	double expend;		/* end of exposure time */
 
 } AcsSumInfo;
+
+#endif /* INCL_ACSSUM_H */

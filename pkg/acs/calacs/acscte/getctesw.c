@@ -1,9 +1,10 @@
 # include <stdio.h>
+#include "hstcal.h"
 # include "hstio.h"
 # include "acs.h"
 # include "acsinfo.h"
-# include "acserr.h"
-
+# include "hstcalerr.h"
+#include "trlbuf.h"
 
 static int GetSw (Hdr *, char *, int *);
 

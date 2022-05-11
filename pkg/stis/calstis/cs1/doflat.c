@@ -6,7 +6,7 @@
 # include "hstio.h"
 # include "stis.h"
 # include "calstis1.h"
-# include "stiserr.h"
+# include "hstcalerr.h"
 # include "stisdef.h"
 
 /* This routine divides x in-place by the flat fields.
@@ -98,7 +98,7 @@ SingleGroup *x    io: image to be calibrated; written to in-place
 		if (hstio_err())
 		    return (OPEN_FAILED);
 
-		allocSingleGroup (&z, y.sci.data.nx, y.sci.data.ny);
+		allocSingleGroup (&z, y.sci.data.nx, y.sci.data.ny, True);
 		if (hstio_err())
 		    return (ALLOCATION_PROBLEM);
 
@@ -126,7 +126,7 @@ SingleGroup *x    io: image to be calibrated; written to in-place
 		*/
 		nx = rx * z.sci.data.nx;
 		ny = ry * z.sci.data.ny;
-		allocSingleGroup (&y, nx, ny);
+		allocSingleGroup (&y, nx, ny, True);
 		if (hstio_err())
 		    return (ALLOCATION_PROBLEM);
 
@@ -198,7 +198,7 @@ SingleGroup *x    io: image to be calibrated; written to in-place
 
 	    /* Bin the flat field down to the actual size of x. */
 
-	    allocSingleGroup (&z, x->sci.data.nx, x->sci.data.ny);
+	    allocSingleGroup (&z, x->sci.data.nx, x->sci.data.ny, True);
 	    if ((status = bin2d (&y, x0, y0, rx, ry, avg, &z))) {
 		printf ("ERROR    (doFlat) size mismatch\n");
 		return (status);

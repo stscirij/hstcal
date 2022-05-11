@@ -48,11 +48,12 @@
 # include <string.h>
 # include <stdio.h>
 
+#include "hstcal.h"
 # include "hstio.h"
 
 # include "wf3.h"
 # include "wf3info.h"
-# include "wf3err.h"
+# include "hstcalerr.h"
 
 static void DarkMsg (WF3Info *, int);
 static void dqiMsg (WF3Info *, int);
@@ -279,9 +280,11 @@ int extver       i: "imset" number, the current set of extensions
 	    if (PutKeyStr (&x.err.hdr, "BUNIT", "ELECTRONS", ""))
 		return (status);
 	}
-	if (extver == 1 && !OmitStep (wf32d->flatcorr))
-	    if (flatHistory (wf32d, x.globalhdr))
-		return (status);
+    if (extver == 1 && !OmitStep (wf32d->flatcorr))
+    {
+        if (flatHistory (wf32d, x.globalhdr))
+            return (status);
+    }
 
 	/*
 		Apply shutter shading correction.

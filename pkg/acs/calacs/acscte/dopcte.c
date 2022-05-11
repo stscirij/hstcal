@@ -3,16 +3,18 @@
 #include <stdlib.h>
 #include <math.h>
 
+#include "hstcal.h"
 #include "hstio.h"
 
 #include "acs.h"
 #include "acsinfo.h"
-#include "acserr.h"
+#include "hstcalerr.h"
+#include "trlbuf.h"
 
 #include "pcte.h"
 
 
-static int get_amp_array_size(const ACSInfo *acs, SingleGroup *x,
+int get_amp_array_size_acs_cte(const ACSInfo *acs, SingleGroup *x,
                               const int amp, char *amploc, char *ccdamp,
                               int *xsize, int *ysize, int *xbeg,
                               int *xend, int *ybeg, int *yend);
@@ -39,7 +41,7 @@ static int unmake_amp_array(const ACSInfo *acs, const SingleGroup *im,
 
    MRD 10 Mar 2011
 */
-int doPCTE (ACSInfo *acs, SingleGroup *x) {
+int doPCTEGen1 (ACSInfo *acs, SingleGroup *x) {
 
     /* arguments:
        acs     i: calibration switches, etc
@@ -61,7 +63,7 @@ int doPCTE (ACSInfo *acs, SingleGroup *x) {
     double dpde_l[NUM_LEV];
 
     /* structure to hold CTE parameters from file */
-    CTEParams pars;
+    ACSCTEParams pars;
 
     /* temporary variable used during final error calculation */
     double temp_err;
@@ -164,7 +166,7 @@ int doPCTE (ACSInfo *acs, SingleGroup *x) {
         amp = *amploc - AMPSORDER[0];
 
         /* get amp array size */
-        if (get_amp_array_size(acs, x, amp, amploc, ccdamp,
+        if (get_amp_array_size_acs_cte(acs, x, amp, amploc, ccdamp,
                                &amp_xsize, &amp_ysize, &amp_xbeg,
                                &amp_xend, &amp_ybeg, &amp_yend)) {
             return (status);
@@ -212,9 +214,10 @@ int doPCTE (ACSInfo *acs, SingleGroup *x) {
         }
 
         /* perform CTE correction */
+        int onecpu = acs->nThreads <= 1 ? YES : NO;
         if (FixYCte(amp_arr1, amp_arr2, amp_sig_arr, amp_cor_arr, pars.sim_nit,
                     pars.shft_nit, pars.sub_thresh, cte_frac_arr, pars.levels,
-                    dpde_l, chg_leak_lt, chg_open_lt, acs->onecpu)) {
+                    dpde_l, chg_leak_lt, chg_open_lt, onecpu)) {
             return (status);
         }
 
@@ -265,7 +268,7 @@ int doPCTE (ACSInfo *acs, SingleGroup *x) {
    the logic for figuring out the amp regions has been copied from doblev.
    - MRD 14 Mar 2011
 */
-static int get_amp_array_size(const ACSInfo *acs, SingleGroup *x,
+int get_amp_array_size_acs_cte(const ACSInfo *acs, SingleGroup *x,
                               const int amp, char *amploc, char *ccdamp,
                               int *xsize, int *ysize, int *xbeg, int *xend,
                               int *ybeg, int *yend) {

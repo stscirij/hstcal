@@ -1,3 +1,6 @@
+#ifndef INCL_CTE_H
+#define INCL_CTE_H
+
 #define NUM_SCALE 4 /*number of scaling points, this is the 4 columns in the second table extension*/
 #define TRAPS 999 /*max number of traps per column = rows in pctetab[1], valid traps are < 999999 in qlev*/
 #define CTEFLAG 9999999 /*flag to ignore value in array during cte calculation*/
@@ -13,7 +16,6 @@ typedef struct {
     double dpdew_data[TRAPS];/*trap size in electrons*/
     double cte_date0; /*date of uvis install on hst in mjd*/
     double cte_date1; /*date of cte model pinning mjd*/
-    double   rn_amp; /*read noise amplitude for clipping */
     double scale_frac; /*scaling of cte model relative to ctedate1*/
     double thresh; /*over subtraction threshold*/
     int cte_len; /*max length of cte trail */
@@ -24,9 +26,9 @@ typedef struct {
     int wcol_data[TRAPS]; /*trap number, insync with number of traps*/
     int   iz_data[RAZ_COLS]; /*column number in raz format*/
     int fix_rocr; /*make allowance for readout cosmic rays*/
-    char descrip2[SZ_LINE+1]; /*descrip from table row, not read in for cte purposes*/
-    char cte_name[SZ_LINE+1]; /*name of cte algorithm */
-    char cte_ver[SZ_LINE+1]; /*version of algorithm */
+    char descrip2[CHAR_LINE_LENGTH+1]; /*descrip from table row, not read in for cte purposes*/
+    char cte_name[CHAR_LINE_LENGTH+1]; /*name of cte algorithm */
+    char cte_ver[CHAR_LINE_LENGTH+1]; /*version of algorithm */
     FloatHdrData *rprof; /*differential trail profile as image*/
     FloatHdrData *cprof; /*cummulative trail profile as image*/
 } CTEParams;
@@ -94,3 +96,5 @@ int initCTETrl (char *, char *);
 
 int makeRAZ(SingleGroup *, SingleGroup *, SingleGroup *);
 int undoRAZ(SingleGroup *, SingleGroup *, SingleGroup *);
+
+#endif /* INCL_CTE_H */

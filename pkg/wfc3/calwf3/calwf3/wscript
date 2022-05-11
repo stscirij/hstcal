@@ -5,8 +5,9 @@ def build(bld):
         name = 'calwf3.e',
         source = 'wf3main.c',
         target = 'calwf3.e',
-        use = ['calwf3', 'imphttab'] + bld.env.LOCAL_LIBS,
+        use = ['hstcallib', 'calwf3', 'imphttab'] + bld.env.LOCAL_LIBS,
         lib = bld.env.EXTERNAL_LIBS,
         libpath = bld.env.LIBPATH,
+        rpath=bld.env.LIBPATH_CFITSIO,
         install_path = '${PREFIX}/bin'
         )

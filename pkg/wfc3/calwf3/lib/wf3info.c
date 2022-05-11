@@ -1,10 +1,11 @@
 # include <string.h>			/* for strncmp, strlen */
 
+#include "hstcal.h"
 # include "hstio.h"
 # include "wf3.h"
 # include "wf3info.h"
 # include "wf3corr.h"		/* calibration switch names */
-# include "wf3err.h"			/* defines error codes */
+# include "hstcalerr.h"			/* defines error codes */
 
 /* These functions initialize values for the WF3Info structure.
 	The values set here are NOT default values, just initialization...
@@ -66,6 +67,10 @@
 
   M. Sosey 2015
     Added chip keyowrds to fully support all phot keys in all headers
+
+  M. De La Pena 2020 March:
+    Added reading of PCTERNOI keyword from the raw primary header for 
+    possible use in the CTE reduction
 */
 
 void WF3Init (WF3Info *wf3) {
@@ -148,6 +153,7 @@ void WF3Init (WF3Info *wf3) {
 	wf3->biassectd[1] = 0;
 	wf3->flashdur = 0;
 	wf3->flashstatus[0] = '\0';
+    wf3->pcternoi = 0.;
 
 	/* Initialize Calibration switches */
 	wf3->dqicorr  = OMIT;

@@ -7,11 +7,12 @@
 # include <math.h>		/* sqrt */
 # include <string.h>
 
+#include "hstcal.h"
 # include "hstio.h"
 
 # include "wf3.h"
 # include "wf3info.h"
-# include "wf3err.h"
+# include "hstcalerr.h"
 # include "wf3dq.h"		/* for BADFLAT */
 
 static void FitToOverscan (SingleGroup *, int, int, int *, float, short, float);

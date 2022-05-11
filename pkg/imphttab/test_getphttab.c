@@ -1,5 +1,7 @@
 #include <stdio.h>
 #include <string.h>
+#include "hstio.h"
+#include "hstcal.h"
 #include "c_iraf.h"
 #include "imphttab.h"
 
@@ -83,19 +85,20 @@ int main(int argc, char **argv){
         "MJD extrapolation into the future.",
         1.2544879212041671e-18, 8344.116261683303, 56.820520968140734, fp);
 
-    fclose(fp);
+    if ((status = fcloseWithStatus(&fp)))
+        return status;
     printf("Wrote test results to %s\n", outfile);
 
     return 0;
 }
 
 
-void compute_values(char photmode[SZ_LINE], char test_title[SZ_LINE],
+void compute_values(char photmode[CHAR_LINE_LENGTH], char test_title[CHAR_LINE_LENGTH],
                     double ans_photflam, float ans_photplam, float ans_photbw,
                     FILE *fp) {
     PhotPar obs;
     int status;
-    char refname[SZ_LINE], refpedigree[SZ_FITS_REC];
+    char refname[CHAR_LINE_LENGTH], refpedigree[SZ_FITS_REC];
     double diff_photflam, diff_photplam, diff_photbw;
 
     /*strcpy(refname,"/grp/hst/cdbs/jref/w3m17171j_imp.fits");*/  /* -9999 */

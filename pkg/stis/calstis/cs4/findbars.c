@@ -3,7 +3,7 @@
 # include <math.h>
 # include "stis.h"
 # include "calstis4.h"
-# include "stiserr.h"
+# include "hstcalerr.h"
 
 # define ARCSEC_PER_DEGREE  3600.
 # define MIN_BARWEIGHT      0.5		/* fraction of expected peak */
@@ -215,7 +215,7 @@ FILE *dbg          i: file handle for debug output
 	}
 
 	if (i_lower >= 0 && i_lower < nv) {
-	    fraction = lower + 0.5 - i_lower;
+	    fraction = 0.5 - lower + i_lower;
 	    template[i_lower] = fraction;
 	}
 

@@ -7,10 +7,11 @@
 # include <stdio.h>
 # include <math.h>		/* for sqrt and exp, in FindRate */
 
+#include "hstcal.h"
 # include "hstio.h"
 # include "acs.h"
 # include "acsinfo.h"
-# include "acserr.h"
+# include "hstcalerr.h"
 # include "acsdq.h"		/* for SATPIXEL */
 
 static double FindRate (double, double);

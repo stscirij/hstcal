@@ -7,11 +7,12 @@
 # include <math.h>		/* sqrt */
 # include <string.h>
 
+#include "hstcal.h"
 # include "hstio.h"
 
 # include "acs.h"
 # include "acsinfo.h"
-# include "acserr.h"
+# include "hstcalerr.h"
 # include "acsdq.h"		/* for CALIBDEFECT */
 
 static void FitToOverscan (SingleGroup *, int, int, int *, float, short, float);

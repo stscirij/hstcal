@@ -46,6 +46,7 @@
 
 # include <time.h>
 # include <string.h>
+#include "hstcal.h"
 # include "wf3dq.h"
 # include "hstio.h"
 # include "wf3.h"
@@ -76,7 +77,7 @@ int SinkDetect(WF3Info *wf3, SingleGroup *x){
 
     /* INIT THE SCIENCE INPUT  */
     initSingleGroup (&raz);
-    allocSingleGroup (&raz,RAZ_COLS/2, RAZ_ROWS);
+    allocSingleGroup (&raz,RAZ_COLS/2, RAZ_ROWS, True);
         
     /*CONVERT DQ DATA TO RAZ FORMAT FOR SCIENCE FILE*/
     makedqRAZ(x, &raz);
@@ -90,7 +91,7 @@ int SinkDetect(WF3Info *wf3, SingleGroup *x){
     /*NOW TURN THE SINK REFERENCE IMAGES INTO RAZ FORMAT*/
     FloatTwoDArray sinkraz;    
     initFloatData(&sinkraz); /*float 2d arrays*/
-    allocFloatData(&sinkraz,RAZ_COLS/2, RAZ_ROWS);     
+    allocFloatData(&sinkraz,RAZ_COLS/2, RAZ_ROWS, True);
 
     makeFloatRaz(&sinkref.data,&sinkraz,x->group_num);
 

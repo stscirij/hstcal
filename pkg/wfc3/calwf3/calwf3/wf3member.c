@@ -3,11 +3,12 @@
 # include <stdlib.h>
 # include <string.h>
 
+#include "hstcal.h"
 # include "hstio.h"	/* defines HST I/O functions */
 
 # include "wf3.h"	/* defines WF3 data structures */
 # include "wf3asn.h"	/* defines WF3 Association data structures */
-# include "wf3err.h"
+# include "hstcalerr.h"
 # include "calwf3.h"	/* defines WF3 observation data structures */
 
 /* GETASNMEMBER: Copy information from association table structure
@@ -25,11 +26,10 @@ WF3Info *wf3		o: exposure specific flags and info
 */
 	extern int status;
 	
-	char rootname[SZ_FNAME+1];
-	char outroot[SZ_CBUF+1];
+	char rootname[CHAR_FNAME_LENGTH+1];
 	char mtype[SZ_FITS_VAL+1];
 	int  mlen;
-	void FindAsnRoot (char *, char *);
+	void FindAsnRoot (const char *, char *);
 	void UpperAll (char *, char *, int);
     int MkName(char *, char *, char *, char *, char *, int);
     
@@ -43,10 +43,9 @@ WF3Info *wf3		o: exposure specific flags and info
 
 	/* Initialize local strings */
 	rootname[0] = '\0';
-	outroot[0]  = '\0';
 	mtype[0]    = '\0';
 
-	strcpy (outroot, asn->product[prodid].subprod[posid].name);
+	const char * outroot = asn->product[prodid].subprod[posid].name;
 	
 	/* MAKE SURE WE ARE ONLY PASSING A ROOTNAME, AND NOT A FULL FILENAME.*/
 	FindAsnRoot (outroot, rootname);
@@ -99,11 +98,11 @@ AsnInfo *asn      	i: calibration flags and other info
 WF3Info *wf3		o: exposure specific flags and info
 */
 	extern int status;
-	char rootname[SZ_FNAME+1];
-	char outroot[SZ_CBUF+1];
-	void FindAsnRoot (char *, char *);
-	
-	strcpy(outroot, asn->filename);
+	char rootname[CHAR_FNAME_LENGTH+1];
+	*rootname = '\0';
+	void FindAsnRoot (const char * input, char * output);
+
+	const char * outroot = asn->filename;
 	
 	/* Make sure we are only passing a rootname, and not a full filename.*/
 	FindAsnRoot (outroot, rootname);
