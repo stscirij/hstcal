@@ -34,6 +34,20 @@ int GetImageRef (RefFileInfo *, Hdr *, char *, RefImage *, int *);
     for each reference file, as well as verifying correct selection criteria
     such as DETECTOR, FILTER, and CCDGAIN.
 
+   M. De La Pena, 2022 February 
+    Added new SATUFILE: Full-well saturation image.
+
+   M. De La Pena, 2023 May
+    Only try to access the SATUFILE keyword if it is actually available in
+    the header.  If the keyword is missing or does not contain a filename,
+    the algorithm will indicate the original method of flagging saturated
+    pixels by using a single value threshold should be used.
+
+   M. De La Pena, 2023 October
+    In addition to the current check of the BIASFILE not existing, added
+    handling for the situation when the BIASFILE has a bad pedigree. In this
+    instance BIASCORR cannot be performed.  As a consequence, full-well
+    saturation must fall back to be applied as a scalar threshold.
 */
 
 int GetFlags (WF3Info *wf3, Hdr *phdr) {
@@ -148,6 +162,8 @@ int *nsteps      io: incremented if this step can be performed
 
 	extern int status;
 
+    int saveBiasCorr = GOOD_PEDIGREE;
+
 	int calswitch;
 	int GetSwitch (Hdr *, char *, int *);
 	void MissingFile (char *, char *, int *);
@@ -164,25 +180,84 @@ int *nsteps      io: incremented if this step can be performed
 		return (status);
 	    }
 
-	    if (GetImageRef (wf3->refnames, phdr, "BIASFILE", &wf3->bias, 
-			     &wf3->biascorr))
-		return (status);
-	    if (wf3->bias.exists != EXISTS_YES) {
-		MissingFile ("BIASFILE", wf3->bias.name, missing);
+        if (GetImageRef (wf3->refnames, phdr, "BIASFILE", &wf3->bias, &wf3->biascorr))
+            return (status);
 
-	    } else {
+        /* 
+            If the BIASFILE has a DUMMY pedigree, the GetImageRef command does not error.
+            However, the wf3->biacorr will be set to DUMMY, and this will cause the bias
+            correction to be skipped.  Due to the new implementation which uses a
+            full-well saturation *image*, both BLEVCORR *and* BIASCORR must be performed.
+        */
+        if (wf3->biascorr != PERFORM) {
+            wf3->scalar_satflag = True;
+            sprintf (MsgText, "There is an issue with the BIASFILE, so BIASCORR will not be performed.\n");
+            trlwarn(MsgText);
+            sprintf (MsgText, "A single threshold value will be used for full-well saturation flagging.");
+            trlmessage(MsgText);
+            return (status);
+        }
 
-		/* Is the FILETYPE appropriate for a BIAS file? */
-		CheckImgType (&wf3->bias, "BIAS", "BIASFILE", missing);
+        if (wf3->bias.exists != EXISTS_YES) {
+            MissingFile ("BIASFILE", wf3->bias.name, missing);
+        } else {
 
-		/* Does it have the correct GAIN value? */
-		if (CheckGain(wf3->bias.name, wf3->ccdgain, "CCDGAIN", missing))
-		    return (status);
-	    }
+            /* Is the FILETYPE appropriate for a BIAS file? */
+            CheckImgType (&wf3->bias, "BIAS", "BIASFILE", missing);
+
+            /* Does it have the correct GAIN value? */
+            if (CheckGain(wf3->bias.name, wf3->ccdgain, "CCDGAIN", missing))
+                return (status);
+        }
 
 	    if (wf3->biascorr == PERFORM)
 		(*nsteps)++;
-	}
+
+        /* Save the value for recovery */
+        saveBiasCorr = wf3->biascorr;
+
+        /* 
+          Also check for the new full-well saturation image which is
+          applied after BLEVCORR and BIASCORR are done. Since the reference
+          file is not associated with its own "calibration step keyword"
+          (e.g., SATUCORR), just using the BIASCORR key as a standin here - 
+          make sure the BIASCORR retains its value as set in the above code.
+
+          This is a kludge.
+       */
+        if (GetImageRef (wf3->refnames, phdr,
+                         "SATUFILE", &wf3->satmap, &wf3->biascorr))
+        {
+            wf3->scalar_satflag = True;
+	        sprintf (MsgText, "SATUFILE not found or cannot be opened.");
+	        trlerror (MsgText);
+	        sprintf (MsgText, "A single threshold value will be used for full-well saturation flagging.");
+	        trlmessage(MsgText);
+            return (status);
+        }
+
+        /* Recover the biascorr setting */
+        wf3->biascorr = saveBiasCorr;
+
+        /* Accommodate a missing SATUFILE keyword or associated value */
+        if (wf3->satmap.exists != EXISTS_YES) {
+            wf3->scalar_satflag = True;
+            MissingFile ("SATUFILE", wf3->satmap.name, missing);
+            *missing = 0;
+	        sprintf (MsgText, "A single threshold value will be used for full-well saturation flagging.");
+	        trlmessage(MsgText);
+        }
+    /* 
+      At the least BIASCORR is not set to PERFORM, so issue a message and set the scalar_satflag so
+      the 2D saturation image will not be used.
+    */
+	} else {
+        wf3->scalar_satflag = True;
+	    sprintf (MsgText, "BIASCORR is *NOT* set to PERFORM.");
+	    trlmessage(MsgText);
+	    sprintf (MsgText, "A single threshold value will be used for full-well saturation flagging.\n");
+	    trlmessage(MsgText);
+    }
 
 	return (status);
 }

@@ -55,11 +55,24 @@
     Moved the subarray codes to a general function and changed the calculation
     of where the subarray is. Also moved the DQ bit to the singlegroup extension
 
+    M. De La Pena February 2022
+    Modified to apply the full-well saturation flags stored as an image
+    to the data in doFullWellSat() instead of in the doDQI step.
+
+    M. De La Pena June 2023
+    Only try to access the SATUFILE keyword if it is actually available in
+    the header.  If the keyword is missing or does not contain a filename,
+    the algorithm will indicate the original method of flagging saturated
+    pixels by using a single value threshold should be used.
+ 
+    M. De La Pena October 2023
+    Added overscan as a parameter to the doDQI function signature.
+
  */
 
 # include <string.h>
 # include <stdio.h>
-#include "hstcal.h"
+# include "hstcal.h"
 # include "hstio.h"
 # include "wf3.h"
 # include "wf3info.h"
@@ -225,7 +238,7 @@ int DoCCD (WF3Info *wf3, int extver) {
     /* DATA QUALITY INITIALIZATION AND (FOR THE CCDS) CHECK SATURATION. */
     dqiMsg (wf3, extver);
     if (wf3->dqicorr == PERFORM || wf3->dqicorr == DUMMY) {
-        if (doDQI (wf3, &x))
+        if (doDQI (wf3, &x, overscan))
             return (status);
         PrSwitch ("dqicorr", COMPLETE);
         if (wf3->printtime)
@@ -234,7 +247,6 @@ int DoCCD (WF3Info *wf3, int extver) {
     if (extver == 1 && !OmitStep (wf3->dqicorr))
         if (dqiHistory (wf3, x.globalhdr))
             return (status);
-
 
     /* ANALOG TO DIGITAL CORRECTION. */
     AtoDMsg (wf3, extver);
@@ -313,6 +325,24 @@ int DoCCD (WF3Info *wf3, int extver) {
         if (biasHistory (wf3, x.globalhdr))
             return (status);
 
+    /* Apply the saturation image.
+       Strictly speaking, the application of the full-well saturation image is
+       not a calibration step (i.e., there is no SATCORR), but the application
+       of a 2D image to flag pixels versus using a single scalar to flag
+       saturated pixels as previously done in DQICORR will be done in doFullWellSat()
+       after BLEVCORR and BIASCORR.  This correction should only be done if both
+       BLEVCORR and BIASCORR have been performed.  This flagging is only applicable
+       for the UVIS. */
+
+    if (wf3->biascorr == PERFORM && wf3->blevcorr == PERFORM && wf3->scalar_satflag == False) {
+        SatMsg (wf3, extver);
+        sprintf(MsgText, "\nFull-well saturation flagging being performed.");
+        trlmessage(MsgText);
+        if (doFullWellSat(wf3, &x)) {
+            return (status);
+        }
+    } 
+
     /*UPDATE THE SINK PIXELS IN THE DQ MASK OF BOTH SCIENCE IMAGE SETS
      IT'S DONE HERE WITH ONE CALL TO THE FILE BECAUSE THEY NEED TO BE
      PROCESSED IN THE RAZ FORMAT JAY USES, THOUGH ONLY ONE CHIP DONE HERE
@@ -340,8 +370,8 @@ int DoCCD (WF3Info *wf3, int extver) {
                 */
 
                 /* Make temporary full group
-                 use the sinkfile as the reference
-                sub2full will reset the pixel values
+                   use the sinkfile as the reference
+                   sub2full will reset the pixel values
                 */
                 initSingleGroup(&fullarray);
                 allocSingleGroup(&fullarray,RAZ_COLS/2,RAZ_ROWS, True);
@@ -548,6 +578,20 @@ static void BiasMsg (WF3Info *wf3, int extver) {
 
         PrRefInfo ("biasfile", wf3->bias.name, wf3->bias.pedigree,
                 wf3->bias.descrip, "");
+    }
+}
+
+static void SatMsg (WF3Info *wf3, int extver) {
+
+    int OmitStep (int);
+    void PrSwitch (char *, int);
+    void PrRefInfo (char *, char *, char *, char *, char *);
+
+    trlmessage ("");
+    if (extver == 1 && !OmitStep (wf3->biascorr)) {
+
+        PrRefInfo ("satufile", wf3->satmap.name, wf3->satmap.pedigree,
+                wf3->satmap.descrip, "");
     }
 }
 

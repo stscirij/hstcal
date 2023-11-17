@@ -71,6 +71,15 @@
   M. De La Pena 2020 March:
     Added reading of PCTERNOI keyword from the raw primary header for 
     possible use in the CTE reduction
+
+  M. De La Pena 2022 February:
+    Added variable, satmap - the reference image for full-well
+    saturation. Use of this image rendered wf3->saturate variable
+    obsolete.  Removed "wf3->saturate" as part of the cleanup operation.
+
+  M. De La Pena 2023 May:
+    Resurrected the "wf3->saturate" variable so it can be used when a
+    saturation image is not available.
 */
 
 void WF3Init (WF3Info *wf3) {
@@ -129,6 +138,7 @@ void WF3Init (WF3Info *wf3) {
 	wf3->ampx = 0;
 	wf3->ampy = 0;
 	wf3->saturate = 0.;
+	wf3->scalar_satflag = False;
 	wf3->trimx[0] = 0;
 	wf3->trimx[1] = 0;
 	wf3->trimx[2] = 0;
@@ -185,6 +195,7 @@ void WF3Init (WF3Info *wf3) {
 	InitRefTab (&(wf3->oscn));
 	InitRefTab (&(wf3->atod));
     InitRefTab (&(wf3->pctetab));
+    InitRefImg (&(wf3->satmap));
 
 	/* Initialize reference images and tables for WF32D */
 	InitRefImg (&(wf3->dark));
@@ -290,7 +301,7 @@ int GetTabRef (RefFileInfo *refnames, Hdr *phdr,
 
 void MissingFile (char *keyword, char *filename, int *missing) {
 
-	sprintf (MsgText, "%s `%s' not found or can't open.", keyword, filename);
+	sprintf (MsgText, "%s '%s' not found or cannot be opened.", keyword, filename);
 	trlerror (MsgText);
 	(*missing)++;
 }

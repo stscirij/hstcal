@@ -212,15 +212,27 @@ def _get_git_details(ctx):
         _gen_version_header(ctx)
         return
 
-    tmp = call('git describe --dirty --abbrev=7')
+    cmd_describe = 'git describe --dirty --abbrev=7'
+    cmd_hash = 'git rev-parse HEAD'
+    cmd_branch = 'git rev-parse --abbrev-ref HEAD'
+
+    # Report a shadowed release tag if one exists, otherwise fallback to
+    # the generic description method. The generic method does NOT
+    # account for shadows. This might return a release candidate tag if the point
+    # release tag shares the same commit hash. This is purely aesthetic.
+    #
+    # To avoid this scenario one must commit a change to the repository prior to
+    # tagging a final point release.
+    tmp = call(cmd_describe + ' --contains') or \
+        call(cmd_describe)
     if tmp:
         VERSION = tmp
 
-    tmp = call('git rev-parse HEAD')
+    tmp = call(cmd_hash)
     if tmp:
         COMMIT = tmp
 
-    tmp = call('git rev-parse --abbrev-ref HEAD')
+    tmp = call(cmd_branch)
     if tmp:
         BRANCH = tmp
 
@@ -317,7 +329,13 @@ def _check_mac_osx_version(floor_version):
         return None
 
     # Extract the integer values between the '.'s
-    osx_version_major, osx_version_minor, osx_version_patch = tuple(int(x) for x in s.strip().split('.'))
+    osx_version_data = tuple(int(x) for x in s.strip().split('.'))
+    osx_version_major = osx_version_data[0]
+    osx_version_minor = osx_version_data[1]
+    osx_version_patch = 0
+
+    if len(osx_version_data) > 2:
+        osx_version_patch = osx_version_data[2]
 
     # Convert major/minor/patch values into a single 24-bit integer
     osx_version = (osx_version_major & 0xff) << 16 | (osx_version_minor & 0xff) << 8 | (osx_version_patch & 0xff )

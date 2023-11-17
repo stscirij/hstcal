@@ -4,6 +4,7 @@
 /*USEFUL LIB FUNCTIONS*/
 static void AtoDMsg (WF3Info *, int);
 static void BiasMsg (WF3Info *, int);
+static void SatMsg (WF3Info *, int);
 static void FlashMsg (WF3Info *, int);
 static void BlevMsg (WF3Info *, int);
 static void dqiMsg  (WF3Info *, int);
@@ -13,13 +14,14 @@ int GetCorner (Hdr *, int , int *, int *);
 int doAtoD (WF3Info *, SingleGroup *);
 int atodHistory (WF3Info *, Hdr *);
 int doBias (WF3Info *, SingleGroup *);
+int doFullWellSat(WF3Info *, SingleGroup *);
 int biasHistory (WF3Info *, Hdr *);
 int doFlash (WF3Info *, SingleGroup *, float *);
 int flashHistory (WF3Info *, Hdr *);
 int doBlev (WF3Info *, SingleGroup *, int, float *, int *, int *);
 int blevHistory (WF3Info *, Hdr *, int, int);
 int CCDHistory (WF3Info *, Hdr *);
-int doDQI (WF3Info *, SingleGroup *);
+int doDQI (WF3Info *, SingleGroup *, int overscan);
 int dqiHistory (WF3Info *, Hdr *);
 int doNoise (WF3Info *, SingleGroup *, int *);
 int noiseHistory (Hdr *);
