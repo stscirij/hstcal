@@ -780,7 +780,7 @@ StisInfo6 *sts    i: calibration switches and info
 		if ((status = ReturnXtract (&extract, minorder, &extract_a)))
 		    return (status);
 	        if ((status = SelectAlg (sts, extract_a))) {
-	            if ((status == CAL_FILE_MISSING)) {
+	            if (status == CAL_FILE_MISSING) {
 	                status = 0;
 	                printf ("Warning  Skipping order.\n");
 	                FreeXtract (&extract_a);
