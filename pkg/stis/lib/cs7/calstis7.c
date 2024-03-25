@@ -165,6 +165,7 @@ static void StisInit7 (StisInfo7 *sts) {
 	sts->obstype = UNKNOWN_TYPE;
 	sts->wavecal = 0;
 	sts->nimages = 1;
+	sts->echelle = 0;
 	sts->sdqflags = 32767;			/* 15 bits set */
 	sts->exptime = 1.;
 	sts->hfactor = 1.;
@@ -210,6 +211,7 @@ static void StisInit7 (StisInfo7 *sts) {
 	InitRefTab (&sts->apdestab);
 	InitRefTab (&sts->apertab);
 	InitRefTab (&sts->phottab);
+	InitRefTab (&sts->blazetab);
 	InitRefTab (&sts->tdstab);
 	InitRefTab (&sts->disptab);
 	InitRefTab (&sts->inangtab);

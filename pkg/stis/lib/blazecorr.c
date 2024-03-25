@@ -68,7 +68,7 @@ double dispersion;	i:  dispersion (used only when no reference values
 	    *bs = blazeshift;
 
 	    printf (
-	    "         Blaze shift of %g pixels applied to sensitivity curve.\n",
+	    "         User-supplied blaze shift of %g pixels applied to sensitivity curve.\n",
 	     blazeshift);
 	} 
 }

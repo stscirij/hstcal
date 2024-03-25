@@ -262,6 +262,7 @@ StisInfo7 *sts    i: calibration switches and info
 	}
 
 	sts->first_order = (maxorder <= 1);	/* first order grating? */
+	sts->echelle = (maxorder > 1);
 
 	if (sts->x2dcorr_o != PERFORM) {
 	    if (sts->x2dcorr_o == DUMMY) {
@@ -355,7 +356,6 @@ StisInfo7 *sts    i: calibration switches and info
 	    photb.mref = mref;
 	    if (sts->obstype  == SPECTROSCOPIC_TYPE &&
 	        sts->fluxcorr == PERFORM) {
-
 	        /* Get reference order number. */
 	        for (i = minorder; i <= maxorder; i++) {
 	            status = GetAbsPhot (sts, i, &photb, 0, &warn);
@@ -373,7 +373,6 @@ StisInfo7 *sts    i: calibration switches and info
 	        }
 	        if (status)
 	            return (status);
-
 	        if (mref > 0) {
 
 	            /* Get the trace for the reference order */
@@ -481,7 +480,7 @@ StisInfo7 *sts    i: calibration switches and info
 
 		if (sts->printtime)
 		    TimeStamp ("2-D rectification complete", sts->rootname);
-
+                printf("mref = %d\n", mref);
 		/* Convert to absolute flux. */
 		if (fluxcorr_extver == PERFORM) {
 		    if ((status = GetAbsPhot (sts, sporder, &phot, 1, &warn)))
@@ -514,7 +513,6 @@ StisInfo7 *sts    i: calibration switches and info
 	                phot.ypos = 0.0;
 	                phot.disp = 0.0;
 	            }
-
 		    if ((status = AbsFlux (sts, out, coord_o, &phot, &slit, &tds,
 				sts->plate_scale, sts->atodgain,
 				sts->exptime, sts->hfactor, sporder,
@@ -773,6 +771,10 @@ static void FluxMsg (StisInfo7 *sts, int o_extver) {
 	    PrRefInfo ("phottab", sts->phottab.name,
 			sts->phottab.pedigree,
 			sts->phottab.descrip, sts->phottab.descrip2);
+
+	    PrRefInfo ("blazetab", sts->blazetab.name,
+			sts->blazetab.pedigree,
+			sts->blazetab.descrip, sts->blazetab.descrip2);
 
 	    PrRefInfo ("apertab", sts->apertab.name,
 			sts->apertab.pedigree,
