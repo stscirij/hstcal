@@ -480,7 +480,7 @@ StisInfo7 *sts    i: calibration switches and info
 
 		if (sts->printtime)
 		    TimeStamp ("2-D rectification complete", sts->rootname);
-                printf("mref = %d\n", mref);
+
 		/* Convert to absolute flux. */
 		if (fluxcorr_extver == PERFORM) {
 		    if ((status = GetAbsPhot (sts, sporder, &phot, 1, &warn)))
@@ -772,9 +772,13 @@ static void FluxMsg (StisInfo7 *sts, int o_extver) {
 			sts->phottab.pedigree,
 			sts->phottab.descrip, sts->phottab.descrip2);
 
-	    PrRefInfo ("blazetab", sts->blazetab.name,
-			sts->blazetab.pedigree,
-			sts->blazetab.descrip, sts->blazetab.descrip2);
+            if (strlen(sts->blazetab.name) > 0) {
+	        PrRefInfo ("blazetab", sts->blazetab.name,
+			    sts->blazetab.pedigree,
+			    sts->blazetab.descrip, sts->blazetab.descrip2);
+	    } else {
+		printf("BLAZETAB  None, using blaze coefficients from PHOTTAB\n");
+	    }
 
 	    PrRefInfo ("apertab", sts->apertab.name,
 			sts->apertab.pedigree,
