@@ -41,6 +41,7 @@
 
 int WaveShift (StisInfo4 *sts, ApInfo *slit, DispRelation *disp,
 		LampInfo *lamp, SingleGroup *in,
+		int firstrow, int lastrow,
 		double **specweight, double *shift) {
 
 /* arguments:
@@ -76,8 +77,17 @@ double *shift       o: the shift, in pixels
 	/* image section to use */
 	ifirst = sts->wl_sect1[0];
 	ilast  = sts->wl_sect1[1];
-	jfirst = sts->wl_sect2[0];
-	jlast  = sts->wl_sect2[1];
+	if (firstrow != 0) {
+	    jfirst = firstrow;
+	} else {
+	    jfirst = sts->wl_sect2[0];
+	}
+	if (lastrow != 0) {
+	    jlast = lastrow;
+	} else {
+	    jlast = sts->wl_sect2[1];
+	}
+        printf ("First row = %d, last row = %d\n", jfirst, jlast);
 
 	/* Get info on coordinates.
 	   We need the slit width (in the dispersion direction) in pixels,

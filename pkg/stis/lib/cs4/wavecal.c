@@ -83,7 +83,7 @@ static void FreeLampSpec (LampInfo *);
         Initialize disp.ncoeff to 0.
 */
 
-int WaveCal (StisInfo4 *sts) {
+int WaveCal (StisInfo4 *sts, int firstrow, int lastrow) {
 
 /* arguments:
 StisInfo4 *sts    i: calibration switches and info
@@ -127,7 +127,7 @@ StisInfo4 *sts    i: calibration switches and info
 		SingleGroup *, double *, double *);
 	int UpdateShift (StisInfo4 *, int, double, double);
 	int WaveShift (StisInfo4 *, ApInfo *, DispRelation *, LampInfo *,
-		SingleGroup *, double **, double *);
+		SingleGroup *, int, int, double **, double *);
 
 	SpTrace *trace;		/* list of spectrum traces */
 	void FreeTrace4 (SpTrace **);
@@ -214,9 +214,9 @@ StisInfo4 *sts    i: calibration switches and info
 
 		/* Get the image sections to use when finding the shifts. */
 		ScaleTrim (sts);
-		if (sts->verbose)
+		if (sts->verbose) {
 		    PrintSection (sts);
-
+		}
 		printf ("\n");
 		PrSwitch ("wavecorr", PERFORM);
 
@@ -246,6 +246,7 @@ StisInfo4 *sts    i: calibration switches and info
 
 		    /* Determine the shifts in each direction separately. */
 		    if ((status = WaveShift (sts, &slit, &disp, &lamp, &in,
+		                             firstrow, lastrow,
                                              &specweight, &w_shift))) {
 			if (status != NO_GOOD_DATA)
 			    return (status);

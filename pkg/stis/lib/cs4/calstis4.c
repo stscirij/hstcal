@@ -46,7 +46,8 @@ static void StisInit4 (StisInfo4 *);
 */
 
 int CalStis4 (char *input, char *dbgfile,
-	RefFileInfo *refnames, int printtime, int verbose, double slit_angle) {
+	RefFileInfo *refnames, int printtime, int verbose, double slit_angle,
+	int firstrow, int lastrow) {
 
 /* arguments:
 char *input            i: name of input (modified in-place)
@@ -68,7 +69,7 @@ double slit_angle      i: angle of long slit used with echelle; this is
 
 	int GetFlags4 (StisInfo4 *, Hdr *);
 	int GetKeyInfo4 (StisInfo4 *, Hdr *);
-	int WaveCal (StisInfo4 *);
+	int WaveCal (StisInfo4 *, int, int);
 
 	PrBegin (4);
 
@@ -160,7 +161,7 @@ double slit_angle      i: angle of long slit used with echelle; this is
 	    TimeStamp ("Begin processing", sts.rootname);
 
 	/* Do wavecal processing */
-	if ((status = WaveCal (&sts)))
+	if ((status = WaveCal (&sts, firstrow, lastrow)))
 	    return (status);
 
 	printf ("\n");

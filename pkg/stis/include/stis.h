@@ -179,7 +179,8 @@ int CalStis1 (char *input, char *output, char *outblev,
 int CalStis2 (char *input, char *fout, clpar *par, int newpar[]);
 
 int CalStis4 (char *input, char *dbgfile,
-	RefFileInfo *refnames, int printtime, int verbose, double slit_angle);
+	RefFileInfo *refnames, int printtime, int verbose, double slit_angle,
+	int firstrow, int lastrow);
 
 int CalStis6 (char *input, char *output,
 	int backcorr, int dispcorr, int fluxcorr, int helcorr, int sgeocorr,

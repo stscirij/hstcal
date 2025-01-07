@@ -59,7 +59,11 @@ int main (int argc, char **argv) {
 	int too_many = 0;	/* too many command-line arguments? */
 	int dbg_next = 0;	/* debug file name must be next argument? */
 	int angle_next = 0;	/* slit angle must be next argument? */
+	int firstrow_next = 0;  /* first row must be next argument? */
+	int lastrow_next = 0;   /* last row must be next argument? */ 
 	double slit_angle = 0.;	/* (degrees) angle of long slit for echelle */
+	int firstrow = 0;       /* first row of wavecal to use */
+	int lastrow = 0;        /* last row of wavecal to use */
 	int i, j;		/* loop indexes */
 
 	IRAFPointer i_imt;	/* imt list pointer for input files */
@@ -106,6 +110,12 @@ int main (int argc, char **argv) {
 	    } else if (angle_next) {
 		slit_angle = atof (argv[i]);
 		angle_next = 0;
+	    } else if (firstrow_next) {
+		firstrow = atoi (argv[i]);
+		firstrow_next = 0;
+	    } else if (lastrow_next) {
+		lastrow = atoi (argv[i]);
+		lastrow_next = 0;
 	    } else if (argv[i][0] == '-') {
 		if (strcmp (argv[i], "--version") == 0) {
 		    PrVersion();
@@ -132,6 +142,12 @@ int main (int argc, char **argv) {
 		if (strcmp (argv[i]+1, "angle") == 0) {
 		    /* next argument must be slit angle */
 		    angle_next = 1;
+		} else if (strcmp (argv[i]+1, "firstrow") == 0) {
+		    /* next argument must be first row */
+		    firstrow_next = 1;
+		} else if (strcmp (argv[i]+1, "lastrow") == 0) {
+		    /* next argument must be last row */
+		    lastrow_next = 1;
 		} else {
 		    for (j = 1;  argv[i][j] != '\0';  j++) {
 			if (argv[i][j] == 't') {
@@ -191,7 +207,8 @@ int main (int argc, char **argv) {
 	    /* Calibrate the current input file. */
 	    status = 0;
 	    if ((status = CalStis4 (input, dbgfile, &refnames,
-                                    printtime, verbose, slit_angle))) {
+                                    printtime, verbose, slit_angle,
+				    firstrow, lastrow))) {
 		printf ("Error processing %s.\n", input);
 		WhichError (status);
 	    }

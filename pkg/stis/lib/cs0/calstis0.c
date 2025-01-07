@@ -135,7 +135,7 @@
 */
 
 static int CalStis2_0 (char *, char *, int, int);
-static int CalStis4_0 (char *, RefFileInfo *, int, int);
+static int CalStis4_0 (char *, RefFileInfo *, int, int, int, int);
 static int CalStis6_0 (char *, char *, CalSwitch *, int, int);
 static int CalStis7_0 (char *, char *, CalSwitch *, RefFileInfo *, int, int);
 static int CalStis12_0 (char *, char *, int, int);
@@ -166,6 +166,8 @@ int verbose      i: true --> print info in individual csN
 	int save_crj;		/* don't delete crj_tmp file? */
 	int save_fwv;		/* don't delete fwv_tmp file? */
 	int fltexists;		/* fltfile will be created? (yes, normally) */
+	int firstrow = 0;
+	int lastrow = 0;
 	cs1_switch cs1a_sci_sw;	/* calstis1a switches for science file */
 	cs1_switch cs1_sci_sw;	/* calstis1 switches for science file */
 	cs1_switch cs1_wav_sw;	/* calstis1 switches for wavecal */
@@ -379,7 +381,7 @@ int verbose      i: true --> print info in individual csN
 		    wavecal_file = sts.w2d_tmp;
 
 		if ((status = CalStis4_0 (wavecal_file, &sciref,
-                                          printtime, verbose)))
+                                          printtime, verbose, firstrow, lastrow)))
 		    return (status);
 		if (sts.sci_crcorr == PERFORM) {
 		    /* Update header of crjfile. */
@@ -763,14 +765,15 @@ static int CalStis2_0 (char *input, char *output, int printtime, int verbose) {
 /* This function is an interface for calling calstis4. */
 
 static int CalStis4_0 (char *input, RefFileInfo *refnames,
-	int printtime, int verbose) {
+	int printtime, int verbose, int firstrow, int lastrow) {
 
 	int status;
 	char dbgfile[] = "";		/* (not used by pipeline) */
 	double slit_angle = 0.;		/* (not used by pipeline) */
 
 	if ((status = CalStis4 (input, dbgfile,
-                                refnames, printtime, verbose, slit_angle)))
+                                refnames, printtime, verbose, slit_angle,
+				firstrow, lastrow)))
 	    return (status);
 
 	return (0);
