@@ -191,6 +191,7 @@ int bks_order;		i: backgr. smoothing polynomial order
         IODescPtr tim;           	/* temporary primary header */
         int prtimestamp;
 	double dummy;
+	char intermediate_file[STIS_FNAME];
 
 	float **Alloc2DArrayF (int, int);
 	RowContents **AllocX1DTable (int);
@@ -220,6 +221,7 @@ int bks_order;		i: backgr. smoothing polynomial order
                          double, double, int, int, double, double, int, int,
                          int, double *, double *, double, double, int, int,
                          double);
+	int write_intermediate (char *, float **, int, int, int);
 
 	/* Print ID greeting. */
 	prtimestamp = 0;
@@ -1183,6 +1185,9 @@ int bks_order;		i: backgr. smoothing polynomial order
 	        if ((status = AddGhost (phdr, im_mod, win.sci.data.nx,
                                         win.sci.data.ny)))
 	            return (status);
+                sprintf(intermediate_file, "iteration%d.fits", iter);
+		if (write_intermediate (intermediate_file, im_mod, win.sci.data.nx, win.sci.data.ny, extver))
+		    return (OPEN_FAILED);
 
 	        /* If final iteration, clean up memory and leave main loop. */
 
@@ -1398,6 +1403,8 @@ int bks_order;		i: backgr. smoothing polynomial order
 	    copyHdr (&(wout.sci.hdr), &(in.sci.hdr));
 	    FreeX1DTable (wx1d2, tabptr.nrows);
 
+	    printf ("Writing scattered light image\n");
+	    putSingleGroup ("scattered_light.fits", extver, &wout, 0);
 	    /* Subtract scattered light image from original raw image. */
 
 	    if (verbose) {
@@ -1899,7 +1906,7 @@ static int AddGhost (Hdr *phdr, float **im, int nx, int ny) {
 	        xx = kx[0][0] + j * kx[0][1] + i * kx[1][0] + j * i * kx[1][1];
 	        yy = ky[0][0] + j * ky[0][1] + i * ky[1][0] + j * i * ky[1][1];
 	        ii = (int)NINT(xx);
-	        jj = (int)NINT(xx);
+	        jj = (int)NINT(yy);
 	        ii = (ii < 0) ? 0 : ii;
 	        jj = (jj < 0) ? 0 : jj;
 	        ii = (ii >= nx) ? (nx - 1) : ii;
@@ -2141,23 +2148,23 @@ static void BuildTempNames (char *basename, char *out1, char *out2, char *out3) 
    write at stdout. They were used for debugging during development and
    are kept in here just in case. (Not used)
 */
-/*
-static int Debug (char *name, float **array, int nx, int ny) {
+
+int write_intermediate (char *name, float **array, int nx, int ny, int group) {
 
 	SingleGroup out;
 	int i, j;
 
 	initSingleGroup (&out);
-	if (allocSingleGroup (&out, nx, ny))
+	if (allocSingleGroup (&out, nx, ny, True))
 	    return (OUT_OF_MEMORY);
 	for (j = 0; j < ny; j++) {
 	    for (i = 0; i < nx; i++)
 	        Pix (out.sci.data, i, j) = array[j][i];
 	}
 
-	printf ("Writing %s image.\n", name);
+	printf ("Writing iteration %d to %s.\n", group, name);
 
-	if (putSingleGroup (name, 1, &out, 0))
+	if (putSingleGroup (name, group, &out, 0))
 	    return (OPEN_FAILED);
 	freeSingleGroup (&out);
 
@@ -2165,7 +2172,7 @@ static int Debug (char *name, float **array, int nx, int ny) {
 
 	return (STIS_OK);
 }
-
+/*
 static int DDebug (char *name, double *array, int nx) {
 
 	SingleGroup out;
